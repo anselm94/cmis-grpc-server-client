@@ -1,6 +1,7 @@
 package docserverclient
 
 type Config struct {
+	AppHost    string
 	AppPort    string
 	DBHost     string
 	DBPort     string
@@ -12,6 +13,7 @@ type Config struct {
 
 func NewDefaultConfig() *Config {
 	return &Config{
+		AppHost:    "localhost",
 		AppPort:    ":9999",
 		DBHost:     "localhost",
 		DBPort:     "5432",

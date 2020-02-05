@@ -31,8 +31,8 @@ type CmisObject struct {
 	TypeDefinition   TypeDefinition
 	TypeDefinitionID uint
 	Properties       []CmisProperty
-	ParentID         uint
-	Children         []*CmisObject `gorm:"many2many:filing;association_jointable_foreignkey:parent_id"`
+	Children         []*CmisObject `gorm:"many2many:filing;association_jointable_foreignkey:child_id;jointable_foreignkey:cmis_object_id;"`
+	Parents          []*CmisObject `gorm:"many2many:filing;association_jointable_foreignkey:cmis_object_id;jointable_foreignkey:child_id;"`
 }
 
 type CmisProperty struct {
