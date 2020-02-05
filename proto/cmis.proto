@@ -6,47 +6,47 @@ import "google/protobuf/empty.proto";
 option go_package="cmis";
 
 message Repository {
-  CmisID id = 1;
   string name = 2;
-  CmisObject root_folder = 3;
+  string description = 3;
+  CmisObjectId root_folder_id = 4;
+  repeated TypeDefinition type_definitions = 5;
 }
 
 message TypeDefinition {
-  CmisID id = 1;
   string name = 2;
-  repeated PropertyDefinition property_definitions = 3;
+  string description = 3;
+  repeated PropertyDefinition property_definitions = 4;
 }
 
 message PropertyDefinition {
-  CmisID id = 1;
-  string name = 2;
-  string type = 3;
+  string name = 1;
+  string description = 2;
+  string datatype = 3;
 }
 
 message CmisObject {
-  CmisID id = 1;
+  CmisObjectId id = 1;
   TypeDefinition type_definition = 2;
   repeated CmisProperty properties = 3;
 }
 
 message CmisProperty {
-  string name = 1;
+  PropertyDefinition property_definition = 1;
   string value = 2;
-  PropertyDefinition property_definition = 3;
 }
 
-message CmisChildren {
-  repeated CmisObject children = 1;
+message CmisResult {
+  CmisObject object = 1;
+  repeated CmisObject children = 2;
 }
 
-message CmisID {
+message CmisObjectId {
   string id = 1;
 }
 
 service CmisService {
   rpc getRepository (google.protobuf.Empty) returns (Repository);
-  rpc getChildren(CmisObject) returns (CmisChildren);
-  rpc getObject(CmisID) returns (CmisObject);
+  rpc getObject(CmisObjectId) returns (stream CmisResult);
   rpc createObject(CmisObject) returns (CmisObject);
   rpc deleteObject(CmisObject) returns (CmisObject);
 }

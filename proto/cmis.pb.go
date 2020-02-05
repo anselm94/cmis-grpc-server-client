@@ -26,12 +26,13 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type Repository struct {
-	Id                   *CmisID     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name                 string      `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	RootFolder           *CmisObject `protobuf:"bytes,3,opt,name=root_folder,json=rootFolder,proto3" json:"root_folder,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
-	XXX_unrecognized     []byte      `json:"-"`
-	XXX_sizecache        int32       `json:"-"`
+	Name                 string            `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description          string            `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	RootFolderId         *CmisObjectId     `protobuf:"bytes,4,opt,name=root_folder_id,json=rootFolderId,proto3" json:"root_folder_id,omitempty"`
+	TypeDefinitions      []*TypeDefinition `protobuf:"bytes,5,rep,name=type_definitions,json=typeDefinitions,proto3" json:"type_definitions,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
+	XXX_unrecognized     []byte            `json:"-"`
+	XXX_sizecache        int32             `json:"-"`
 }
 
 func (m *Repository) Reset()         { *m = Repository{} }
@@ -59,13 +60,6 @@ func (m *Repository) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Repository proto.InternalMessageInfo
 
-func (m *Repository) GetId() *CmisID {
-	if m != nil {
-		return m.Id
-	}
-	return nil
-}
-
 func (m *Repository) GetName() string {
 	if m != nil {
 		return m.Name
@@ -73,17 +67,31 @@ func (m *Repository) GetName() string {
 	return ""
 }
 
-func (m *Repository) GetRootFolder() *CmisObject {
+func (m *Repository) GetDescription() string {
 	if m != nil {
-		return m.RootFolder
+		return m.Description
+	}
+	return ""
+}
+
+func (m *Repository) GetRootFolderId() *CmisObjectId {
+	if m != nil {
+		return m.RootFolderId
+	}
+	return nil
+}
+
+func (m *Repository) GetTypeDefinitions() []*TypeDefinition {
+	if m != nil {
+		return m.TypeDefinitions
 	}
 	return nil
 }
 
 type TypeDefinition struct {
-	Id                   *CmisID               `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name                 string                `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	PropertyDefinitions  []*PropertyDefinition `protobuf:"bytes,3,rep,name=property_definitions,json=propertyDefinitions,proto3" json:"property_definitions,omitempty"`
+	Description          string                `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	PropertyDefinitions  []*PropertyDefinition `protobuf:"bytes,4,rep,name=property_definitions,json=propertyDefinitions,proto3" json:"property_definitions,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
 	XXX_unrecognized     []byte                `json:"-"`
 	XXX_sizecache        int32                 `json:"-"`
@@ -114,16 +122,16 @@ func (m *TypeDefinition) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_TypeDefinition proto.InternalMessageInfo
 
-func (m *TypeDefinition) GetId() *CmisID {
-	if m != nil {
-		return m.Id
-	}
-	return nil
-}
-
 func (m *TypeDefinition) GetName() string {
 	if m != nil {
 		return m.Name
+	}
+	return ""
+}
+
+func (m *TypeDefinition) GetDescription() string {
+	if m != nil {
+		return m.Description
 	}
 	return ""
 }
@@ -136,9 +144,9 @@ func (m *TypeDefinition) GetPropertyDefinitions() []*PropertyDefinition {
 }
 
 type PropertyDefinition struct {
-	Id                   *CmisID  `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Type                 string   `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description          string   `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Datatype             string   `protobuf:"bytes,3,opt,name=datatype,proto3" json:"datatype,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -169,13 +177,6 @@ func (m *PropertyDefinition) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_PropertyDefinition proto.InternalMessageInfo
 
-func (m *PropertyDefinition) GetId() *CmisID {
-	if m != nil {
-		return m.Id
-	}
-	return nil
-}
-
 func (m *PropertyDefinition) GetName() string {
 	if m != nil {
 		return m.Name
@@ -183,15 +184,22 @@ func (m *PropertyDefinition) GetName() string {
 	return ""
 }
 
-func (m *PropertyDefinition) GetType() string {
+func (m *PropertyDefinition) GetDescription() string {
 	if m != nil {
-		return m.Type
+		return m.Description
+	}
+	return ""
+}
+
+func (m *PropertyDefinition) GetDatatype() string {
+	if m != nil {
+		return m.Datatype
 	}
 	return ""
 }
 
 type CmisObject struct {
-	Id                   *CmisID         `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id                   *CmisObjectId   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	TypeDefinition       *TypeDefinition `protobuf:"bytes,2,opt,name=type_definition,json=typeDefinition,proto3" json:"type_definition,omitempty"`
 	Properties           []*CmisProperty `protobuf:"bytes,3,rep,name=properties,proto3" json:"properties,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
@@ -224,7 +232,7 @@ func (m *CmisObject) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CmisObject proto.InternalMessageInfo
 
-func (m *CmisObject) GetId() *CmisID {
+func (m *CmisObject) GetId() *CmisObjectId {
 	if m != nil {
 		return m.Id
 	}
@@ -246,9 +254,8 @@ func (m *CmisObject) GetProperties() []*CmisProperty {
 }
 
 type CmisProperty struct {
-	Name                 string              `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	PropertyDefinition   *PropertyDefinition `protobuf:"bytes,1,opt,name=property_definition,json=propertyDefinition,proto3" json:"property_definition,omitempty"`
 	Value                string              `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	PropertyDefinition   *PropertyDefinition `protobuf:"bytes,3,opt,name=property_definition,json=propertyDefinition,proto3" json:"property_definition,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
 	XXX_unrecognized     []byte              `json:"-"`
 	XXX_sizecache        int32               `json:"-"`
@@ -279,11 +286,11 @@ func (m *CmisProperty) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_CmisProperty proto.InternalMessageInfo
 
-func (m *CmisProperty) GetName() string {
+func (m *CmisProperty) GetPropertyDefinition() *PropertyDefinition {
 	if m != nil {
-		return m.Name
+		return m.PropertyDefinition
 	}
-	return ""
+	return nil
 }
 
 func (m *CmisProperty) GetValue() string {
@@ -293,85 +300,86 @@ func (m *CmisProperty) GetValue() string {
 	return ""
 }
 
-func (m *CmisProperty) GetPropertyDefinition() *PropertyDefinition {
-	if m != nil {
-		return m.PropertyDefinition
-	}
-	return nil
-}
-
-type CmisChildren struct {
-	Children             []*CmisObject `protobuf:"bytes,1,rep,name=children,proto3" json:"children,omitempty"`
+type CmisResult struct {
+	Object               *CmisObject   `protobuf:"bytes,1,opt,name=object,proto3" json:"object,omitempty"`
+	Children             []*CmisObject `protobuf:"bytes,2,rep,name=children,proto3" json:"children,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
 }
 
-func (m *CmisChildren) Reset()         { *m = CmisChildren{} }
-func (m *CmisChildren) String() string { return proto.CompactTextString(m) }
-func (*CmisChildren) ProtoMessage()    {}
-func (*CmisChildren) Descriptor() ([]byte, []int) {
+func (m *CmisResult) Reset()         { *m = CmisResult{} }
+func (m *CmisResult) String() string { return proto.CompactTextString(m) }
+func (*CmisResult) ProtoMessage()    {}
+func (*CmisResult) Descriptor() ([]byte, []int) {
 	return fileDescriptor_5ed4f7310ba83cea, []int{5}
 }
 
-func (m *CmisChildren) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CmisChildren.Unmarshal(m, b)
+func (m *CmisResult) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CmisResult.Unmarshal(m, b)
 }
-func (m *CmisChildren) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CmisChildren.Marshal(b, m, deterministic)
+func (m *CmisResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CmisResult.Marshal(b, m, deterministic)
 }
-func (m *CmisChildren) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CmisChildren.Merge(m, src)
+func (m *CmisResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CmisResult.Merge(m, src)
 }
-func (m *CmisChildren) XXX_Size() int {
-	return xxx_messageInfo_CmisChildren.Size(m)
+func (m *CmisResult) XXX_Size() int {
+	return xxx_messageInfo_CmisResult.Size(m)
 }
-func (m *CmisChildren) XXX_DiscardUnknown() {
-	xxx_messageInfo_CmisChildren.DiscardUnknown(m)
+func (m *CmisResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_CmisResult.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CmisChildren proto.InternalMessageInfo
+var xxx_messageInfo_CmisResult proto.InternalMessageInfo
 
-func (m *CmisChildren) GetChildren() []*CmisObject {
+func (m *CmisResult) GetObject() *CmisObject {
+	if m != nil {
+		return m.Object
+	}
+	return nil
+}
+
+func (m *CmisResult) GetChildren() []*CmisObject {
 	if m != nil {
 		return m.Children
 	}
 	return nil
 }
 
-type CmisID struct {
+type CmisObjectId struct {
 	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *CmisID) Reset()         { *m = CmisID{} }
-func (m *CmisID) String() string { return proto.CompactTextString(m) }
-func (*CmisID) ProtoMessage()    {}
-func (*CmisID) Descriptor() ([]byte, []int) {
+func (m *CmisObjectId) Reset()         { *m = CmisObjectId{} }
+func (m *CmisObjectId) String() string { return proto.CompactTextString(m) }
+func (*CmisObjectId) ProtoMessage()    {}
+func (*CmisObjectId) Descriptor() ([]byte, []int) {
 	return fileDescriptor_5ed4f7310ba83cea, []int{6}
 }
 
-func (m *CmisID) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CmisID.Unmarshal(m, b)
+func (m *CmisObjectId) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CmisObjectId.Unmarshal(m, b)
 }
-func (m *CmisID) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CmisID.Marshal(b, m, deterministic)
+func (m *CmisObjectId) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CmisObjectId.Marshal(b, m, deterministic)
 }
-func (m *CmisID) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CmisID.Merge(m, src)
+func (m *CmisObjectId) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CmisObjectId.Merge(m, src)
 }
-func (m *CmisID) XXX_Size() int {
-	return xxx_messageInfo_CmisID.Size(m)
+func (m *CmisObjectId) XXX_Size() int {
+	return xxx_messageInfo_CmisObjectId.Size(m)
 }
-func (m *CmisID) XXX_DiscardUnknown() {
-	xxx_messageInfo_CmisID.DiscardUnknown(m)
+func (m *CmisObjectId) XXX_DiscardUnknown() {
+	xxx_messageInfo_CmisObjectId.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CmisID proto.InternalMessageInfo
+var xxx_messageInfo_CmisObjectId proto.InternalMessageInfo
 
-func (m *CmisID) GetId() string {
+func (m *CmisObjectId) GetId() string {
 	if m != nil {
 		return m.Id
 	}
@@ -384,42 +392,45 @@ func init() {
 	proto.RegisterType((*PropertyDefinition)(nil), "cmis.PropertyDefinition")
 	proto.RegisterType((*CmisObject)(nil), "cmis.CmisObject")
 	proto.RegisterType((*CmisProperty)(nil), "cmis.CmisProperty")
-	proto.RegisterType((*CmisChildren)(nil), "cmis.CmisChildren")
-	proto.RegisterType((*CmisID)(nil), "cmis.CmisID")
+	proto.RegisterType((*CmisResult)(nil), "cmis.CmisResult")
+	proto.RegisterType((*CmisObjectId)(nil), "cmis.CmisObjectId")
 }
 
 func init() { proto.RegisterFile("proto/cmis.proto", fileDescriptor_5ed4f7310ba83cea) }
 
 var fileDescriptor_5ed4f7310ba83cea = []byte{
-	// 447 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0xcf, 0x8b, 0xd3, 0x40,
-	0x14, 0x66, 0xd2, 0x5a, 0xcc, 0x4b, 0xad, 0xcb, 0x6c, 0x91, 0x10, 0x3d, 0x94, 0x9c, 0x0a, 0x4a,
-	0x8a, 0xd9, 0x93, 0xa0, 0x17, 0x77, 0x15, 0x16, 0x0f, 0xca, 0xe8, 0x69, 0x2f, 0x4b, 0x9b, 0xbc,
-	0xc6, 0x91, 0x24, 0x33, 0x4e, 0x66, 0x17, 0x72, 0xf6, 0x0f, 0x10, 0xbc, 0xfb, 0xbf, 0x4a, 0x26,
-	0x3f, 0x4b, 0x2a, 0x62, 0x6f, 0x2f, 0x33, 0xdf, 0xfb, 0xde, 0xfb, 0xbe, 0x37, 0x2f, 0x70, 0x26,
-	0x95, 0xd0, 0x62, 0x13, 0x65, 0xbc, 0x08, 0x4c, 0x48, 0xa7, 0x55, 0xec, 0x3d, 0x4d, 0x84, 0x48,
-	0x52, 0xdc, 0x98, 0xb3, 0xdd, 0xdd, 0x7e, 0x83, 0x99, 0xd4, 0x65, 0x0d, 0xf1, 0xbf, 0x03, 0x30,
-	0x94, 0xa2, 0xe0, 0x5a, 0xa8, 0x92, 0x3e, 0x03, 0x8b, 0xc7, 0x2e, 0x59, 0x91, 0xb5, 0x13, 0xce,
-	0x03, 0xc3, 0x74, 0x99, 0xf1, 0xe2, 0xfa, 0x8a, 0x59, 0x3c, 0xa6, 0x14, 0xa6, 0xf9, 0x36, 0x43,
-	0xd7, 0x5a, 0x91, 0xb5, 0xcd, 0x4c, 0x4c, 0x5f, 0x82, 0xa3, 0x84, 0xd0, 0xb7, 0x7b, 0x91, 0xc6,
-	0xa8, 0xdc, 0x89, 0x49, 0x3d, 0xeb, 0x53, 0x3f, 0xee, 0xbe, 0x61, 0xa4, 0x19, 0x54, 0xa0, 0xf7,
-	0x06, 0xe3, 0xff, 0x24, 0xb0, 0xf8, 0x52, 0x4a, 0xbc, 0xc2, 0x3d, 0xcf, 0xb9, 0xe6, 0x22, 0x3f,
-	0xa1, 0xee, 0x07, 0x58, 0x4a, 0x25, 0x24, 0x2a, 0x5d, 0xde, 0xc6, 0x1d, 0x51, 0xe1, 0x4e, 0x56,
-	0x93, 0xb5, 0x13, 0xba, 0x35, 0xc7, 0xa7, 0x06, 0xd1, 0x57, 0x62, 0xe7, 0x72, 0x74, 0x56, 0xf8,
-	0x37, 0x40, 0xc7, 0xd0, 0x13, 0x9a, 0xa2, 0x30, 0xd5, 0xa5, 0x44, 0xe3, 0x82, 0xcd, 0x4c, 0xec,
-	0xff, 0x26, 0x00, 0xbd, 0x11, 0xff, 0x20, 0x7d, 0x03, 0x8f, 0xab, 0xa4, 0x81, 0x22, 0xc3, 0xef,
-	0x84, 0xcb, 0x1a, 0x7a, 0x68, 0x1b, 0x5b, 0xe8, 0x43, 0x1b, 0x43, 0x80, 0x46, 0x1e, 0xc7, 0xd6,
-	0x0a, 0xda, 0x17, 0x69, 0x35, 0xb2, 0x01, 0xca, 0xff, 0x41, 0x60, 0x3e, 0xbc, 0xec, 0x84, 0x91,
-	0x81, 0xb0, 0x25, 0x3c, 0xb8, 0xdf, 0xa6, 0x77, 0xad, 0xda, 0xfa, 0x83, 0x5e, 0xc3, 0xf9, 0x91,
-	0x19, 0x34, 0x6f, 0xe0, 0xef, 0x23, 0xa0, 0xe3, 0x11, 0xf8, 0xaf, 0xeb, 0x26, 0x2e, 0xbf, 0xf2,
-	0x34, 0x56, 0x98, 0xd3, 0x17, 0xf0, 0x30, 0x6a, 0x62, 0x97, 0x18, 0x1d, 0xe3, 0x37, 0xd5, 0x21,
-	0x7c, 0x17, 0x66, 0xb5, 0x89, 0x74, 0xd1, 0xd9, 0x6b, 0x57, 0x86, 0x86, 0xbf, 0x2c, 0x70, 0xaa,
-	0xab, 0xcf, 0xa8, 0xee, 0x79, 0x84, 0xf4, 0x15, 0x3c, 0x4a, 0x50, 0x0f, 0x5e, 0xfc, 0x93, 0xa0,
-	0xde, 0x8e, 0xa0, 0xdd, 0x8e, 0xe0, 0x5d, 0xb5, 0x1d, 0x5e, 0x53, 0x6e, 0x80, 0xbc, 0x00, 0x27,
-	0x41, 0xdd, 0x75, 0x38, 0xea, 0xc7, 0x1b, 0x38, 0xdd, 0xa1, 0x9e, 0x83, 0x9d, 0xa0, 0x6e, 0x66,
-	0x7f, 0x30, 0x6f, 0x6f, 0x44, 0x40, 0x43, 0x98, 0x47, 0x0a, 0xb7, 0x1a, 0x9b, 0xef, 0x71, 0x89,
-	0xa3, 0x39, 0x31, 0xa6, 0xf8, 0x3f, 0x39, 0x6f, 0x67, 0x37, 0xe6, 0xc7, 0xb0, 0x9b, 0x19, 0xcd,
-	0x17, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0x47, 0x84, 0xa5, 0x03, 0x39, 0x04, 0x00, 0x00,
+	// 487 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x94, 0xcd, 0x8a, 0xdb, 0x3e,
+	0x14, 0xc5, 0x71, 0x92, 0x09, 0x93, 0x9b, 0xfc, 0x33, 0xe1, 0x4e, 0xf8, 0x63, 0x5c, 0x28, 0xc1,
+	0xab, 0x2c, 0x8a, 0x53, 0x3c, 0x9b, 0x76, 0x51, 0x0a, 0xfd, 0x82, 0xd0, 0x45, 0x8b, 0xdb, 0x55,
+	0x37, 0xc1, 0xb1, 0x6e, 0x52, 0x15, 0x27, 0x32, 0x92, 0x32, 0xe0, 0xe7, 0xe8, 0x23, 0xf4, 0x39,
+	0xfa, 0x38, 0x7d, 0x8f, 0x22, 0x59, 0x71, 0x9d, 0x71, 0xb2, 0x68, 0x77, 0xfa, 0x38, 0xd7, 0xf7,
+	0x9c, 0x9f, 0xb8, 0x86, 0x49, 0x21, 0x85, 0x16, 0x8b, 0x6c, 0xc7, 0x55, 0x64, 0x97, 0xd8, 0x33,
+	0xeb, 0xe0, 0xd1, 0x56, 0x88, 0x6d, 0x4e, 0x0b, 0x7b, 0xb6, 0x3e, 0x6c, 0x16, 0xb4, 0x2b, 0x74,
+	0x59, 0x49, 0xc2, 0x9f, 0x1e, 0x40, 0x42, 0x85, 0x50, 0x5c, 0x0b, 0x59, 0x22, 0x42, 0x6f, 0x9f,
+	0xee, 0xc8, 0xef, 0xcc, 0xbc, 0xf9, 0x20, 0xb1, 0x6b, 0x9c, 0xc1, 0x90, 0x91, 0xca, 0x24, 0x2f,
+	0x34, 0x17, 0x7b, 0xbf, 0x6b, 0xaf, 0x9a, 0x47, 0xf8, 0x0c, 0xc6, 0x52, 0x08, 0xbd, 0xda, 0x88,
+	0x9c, 0x91, 0x5c, 0x71, 0xe6, 0xf7, 0x66, 0xde, 0x7c, 0x18, 0x63, 0x64, 0xcd, 0xbc, 0xde, 0x71,
+	0xf5, 0x61, 0xfd, 0x8d, 0x32, 0xbd, 0x64, 0xc9, 0xc8, 0x28, 0xdf, 0x59, 0xe1, 0x92, 0xe1, 0x4b,
+	0x98, 0xe8, 0xb2, 0xa0, 0x15, 0xa3, 0x0d, 0xdf, 0x73, 0xf3, 0x31, 0xe5, 0x5f, 0xcd, 0xba, 0xf3,
+	0x61, 0x3c, 0xad, 0x6a, 0x3f, 0x97, 0x05, 0xbd, 0xa9, 0x2f, 0x93, 0x1b, 0x7d, 0xb2, 0x57, 0xe1,
+	0x77, 0x0f, 0xc6, 0xa7, 0x9a, 0x7f, 0xcc, 0xf0, 0x1e, 0xa6, 0x85, 0x14, 0x05, 0x49, 0x5d, 0x9e,
+	0xb8, 0xe9, 0x59, 0x37, 0x7e, 0xe5, 0xe6, 0xa3, 0x53, 0x34, 0x1c, 0xdd, 0x16, 0xad, 0x33, 0x15,
+	0x6e, 0x00, 0xdb, 0xd2, 0xda, 0x98, 0x77, 0xd9, 0x58, 0xa7, 0x6d, 0x2c, 0x80, 0x6b, 0x96, 0xea,
+	0xd4, 0x04, 0x77, 0xbe, 0xeb, 0x7d, 0xf8, 0xc3, 0x03, 0xf8, 0x43, 0x17, 0x43, 0xe8, 0x70, 0x66,
+	0x3f, 0x7f, 0x9e, 0x7d, 0x87, 0x33, 0x7c, 0x01, 0x37, 0x0f, 0x88, 0xdb, 0xa6, 0x97, 0x80, 0x8f,
+	0x4f, 0x81, 0x63, 0x0c, 0xe0, 0x02, 0x73, 0x52, 0x7e, 0xd7, 0xc2, 0x69, 0xb4, 0x3a, 0xa6, 0x4e,
+	0x1a, 0xaa, 0x50, 0xc0, 0xa8, 0x79, 0x87, 0x4b, 0xb8, 0x3d, 0x83, 0xda, 0xf9, 0xbe, 0x4c, 0x1a,
+	0xdb, 0xa4, 0x71, 0x0a, 0x57, 0xf7, 0x69, 0x7e, 0x38, 0x3e, 0x76, 0xb5, 0x09, 0x59, 0x45, 0x25,
+	0x21, 0x75, 0xc8, 0x35, 0xce, 0xa1, 0x2f, 0x2c, 0x01, 0xd7, 0x61, 0xf2, 0x90, 0x4c, 0xe2, 0xee,
+	0xf1, 0x09, 0x5c, 0x67, 0x5f, 0x79, 0xce, 0x24, 0x19, 0x28, 0xdd, 0xb3, 0xda, 0x5a, 0x11, 0x3e,
+	0xae, 0x62, 0x1d, 0xe9, 0xe2, 0xb8, 0xa6, 0x3f, 0x30, 0xa4, 0xe3, 0x5f, 0x1e, 0x0c, 0x8d, 0xe0,
+	0x13, 0xc9, 0x7b, 0x9e, 0x11, 0x3e, 0x87, 0xff, 0xb6, 0xa4, 0x1b, 0xc3, 0xf6, 0x7f, 0x54, 0x4d,
+	0x66, 0x74, 0x9c, 0xcc, 0xe8, 0xad, 0x99, 0xcc, 0xc0, 0x35, 0x6d, 0x28, 0xef, 0x60, 0xb0, 0x25,
+	0xed, 0x5e, 0xf9, 0xcc, 0xcb, 0x06, 0x0d, 0x9f, 0x55, 0xea, 0xa7, 0x1e, 0xc6, 0x30, 0xca, 0x24,
+	0xa5, 0x9a, 0x5c, 0x5d, 0x2b, 0x4b, 0xd0, 0x3a, 0x31, 0x35, 0x8c, 0x72, 0xfa, 0x9b, 0x9a, 0x57,
+	0xfd, 0x2f, 0xf6, 0x3f, 0xb3, 0xee, 0xdb, 0x18, 0x77, 0xbf, 0x03, 0x00, 0x00, 0xff, 0xff, 0xaf,
+	0x5a, 0x00, 0xd5, 0x88, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -435,8 +446,7 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type CmisServiceClient interface {
 	GetRepository(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Repository, error)
-	GetChildren(ctx context.Context, in *CmisObject, opts ...grpc.CallOption) (*CmisChildren, error)
-	GetObject(ctx context.Context, in *CmisID, opts ...grpc.CallOption) (*CmisObject, error)
+	GetObject(ctx context.Context, in *CmisObjectId, opts ...grpc.CallOption) (CmisService_GetObjectClient, error)
 	CreateObject(ctx context.Context, in *CmisObject, opts ...grpc.CallOption) (*CmisObject, error)
 	DeleteObject(ctx context.Context, in *CmisObject, opts ...grpc.CallOption) (*CmisObject, error)
 }
@@ -458,22 +468,36 @@ func (c *cmisServiceClient) GetRepository(ctx context.Context, in *empty.Empty, 
 	return out, nil
 }
 
-func (c *cmisServiceClient) GetChildren(ctx context.Context, in *CmisObject, opts ...grpc.CallOption) (*CmisChildren, error) {
-	out := new(CmisChildren)
-	err := c.cc.Invoke(ctx, "/cmis.CmisService/getChildren", in, out, opts...)
+func (c *cmisServiceClient) GetObject(ctx context.Context, in *CmisObjectId, opts ...grpc.CallOption) (CmisService_GetObjectClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_CmisService_serviceDesc.Streams[0], "/cmis.CmisService/getObject", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &cmisServiceGetObjectClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-func (c *cmisServiceClient) GetObject(ctx context.Context, in *CmisID, opts ...grpc.CallOption) (*CmisObject, error) {
-	out := new(CmisObject)
-	err := c.cc.Invoke(ctx, "/cmis.CmisService/getObject", in, out, opts...)
-	if err != nil {
+type CmisService_GetObjectClient interface {
+	Recv() (*CmisResult, error)
+	grpc.ClientStream
+}
+
+type cmisServiceGetObjectClient struct {
+	grpc.ClientStream
+}
+
+func (x *cmisServiceGetObjectClient) Recv() (*CmisResult, error) {
+	m := new(CmisResult)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return m, nil
 }
 
 func (c *cmisServiceClient) CreateObject(ctx context.Context, in *CmisObject, opts ...grpc.CallOption) (*CmisObject, error) {
@@ -497,8 +521,7 @@ func (c *cmisServiceClient) DeleteObject(ctx context.Context, in *CmisObject, op
 // CmisServiceServer is the server API for CmisService service.
 type CmisServiceServer interface {
 	GetRepository(context.Context, *empty.Empty) (*Repository, error)
-	GetChildren(context.Context, *CmisObject) (*CmisChildren, error)
-	GetObject(context.Context, *CmisID) (*CmisObject, error)
+	GetObject(*CmisObjectId, CmisService_GetObjectServer) error
 	CreateObject(context.Context, *CmisObject) (*CmisObject, error)
 	DeleteObject(context.Context, *CmisObject) (*CmisObject, error)
 }
@@ -510,11 +533,8 @@ type UnimplementedCmisServiceServer struct {
 func (*UnimplementedCmisServiceServer) GetRepository(ctx context.Context, req *empty.Empty) (*Repository, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRepository not implemented")
 }
-func (*UnimplementedCmisServiceServer) GetChildren(ctx context.Context, req *CmisObject) (*CmisChildren, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetChildren not implemented")
-}
-func (*UnimplementedCmisServiceServer) GetObject(ctx context.Context, req *CmisID) (*CmisObject, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetObject not implemented")
+func (*UnimplementedCmisServiceServer) GetObject(req *CmisObjectId, srv CmisService_GetObjectServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetObject not implemented")
 }
 func (*UnimplementedCmisServiceServer) CreateObject(ctx context.Context, req *CmisObject) (*CmisObject, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateObject not implemented")
@@ -545,40 +565,25 @@ func _CmisService_GetRepository_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CmisService_GetChildren_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CmisObject)
-	if err := dec(in); err != nil {
-		return nil, err
+func _CmisService_GetObject_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(CmisObjectId)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(CmisServiceServer).GetChildren(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cmis.CmisService/GetChildren",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CmisServiceServer).GetChildren(ctx, req.(*CmisObject))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(CmisServiceServer).GetObject(m, &cmisServiceGetObjectServer{stream})
 }
 
-func _CmisService_GetObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CmisID)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CmisServiceServer).GetObject(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/cmis.CmisService/GetObject",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CmisServiceServer).GetObject(ctx, req.(*CmisID))
-	}
-	return interceptor(ctx, in, info, handler)
+type CmisService_GetObjectServer interface {
+	Send(*CmisResult) error
+	grpc.ServerStream
+}
+
+type cmisServiceGetObjectServer struct {
+	grpc.ServerStream
+}
+
+func (x *cmisServiceGetObjectServer) Send(m *CmisResult) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _CmisService_CreateObject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -626,14 +631,6 @@ var _CmisService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _CmisService_GetRepository_Handler,
 		},
 		{
-			MethodName: "getChildren",
-			Handler:    _CmisService_GetChildren_Handler,
-		},
-		{
-			MethodName: "getObject",
-			Handler:    _CmisService_GetObject_Handler,
-		},
-		{
 			MethodName: "createObject",
 			Handler:    _CmisService_CreateObject_Handler,
 		},
@@ -642,6 +639,12 @@ var _CmisService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _CmisService_DeleteObject_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "getObject",
+			Handler:       _CmisService_GetObject_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "proto/cmis.proto",
 }
