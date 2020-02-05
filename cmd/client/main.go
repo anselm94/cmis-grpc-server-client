@@ -49,6 +49,9 @@ func setupUI() {
 	window.SetBorder(true)
 
 	documentList.OnItemActivated(onDocItemSelection)
+	createFolderButton.OnActivated(onCreateFolder)
+	createDocumentButton.OnActivated(onCreateDocument)
+	deleteDocumentButton.OnActivated(onDeleteDocument)
 
 	tui.DefaultFocusChain.Set(documentList, createFolderTextEdit, createFolderButton, createDocumentTextEdit, createDocumentButton, deleteDocumentButton)
 
@@ -111,6 +114,30 @@ func loadObject(objectID *cmis.CmisObjectId) {
 	}
 }
 
+func createObject(cmisObject *cmis.CmisObject) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	object, err := cmisClient.CreateObject(ctxt, cmisObject)
+	if err != nil {
+		updateStatus(fmt.Sprintf("Failed to create object -> %s", err))
+	} else {
+		updateStatus(fmt.Sprintf("Created the object %s", object.Id.String()))
+		go loadObject(folder.GetId())
+	}
+}
+
+func deleteObject(objectID *cmis.CmisObjectId) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := cmisClient.DeleteObject(ctxt, objectID)
+	if err != nil {
+		updateStatus(fmt.Sprintf("Failed to delete object -> %s", err))
+	} else {
+		updateStatus(fmt.Sprintf("Deleted the object %s", objectID))
+		go loadObject(folder.GetId())
+	}
+}
+
 func updateStatus(status string) {
 	ui.Update(func() {
 		statusBar.SetText(status)
@@ -164,6 +191,59 @@ func onDocItemSelection(l *tui.List) {
 			go loadObject(folder.Children[pos].GetId())
 		}
 	}
+}
+
+func onCreateFolder(b *tui.Button) {
+	name := createFolderTextEdit.Text()
+	if name == "" {
+		statusBar.SetText("Enter a folder name!")
+		return
+	}
+	cmisObject := cmis.CmisObject{
+		TypeDefinition: &cmis.TypeDefinition{
+			Name: "cmis:folder",
+		},
+		Parents: []*cmis.CmisObject{
+			&cmis.CmisObject{
+				Id: folder.GetId(),
+			},
+		},
+		Properties: []*cmis.CmisProperty{
+			&cmis.CmisProperty{
+				PropertyDefinition: &cmis.PropertyDefinition{
+					Name: "cmis:name",
+				},
+				Value: name,
+			},
+			&cmis.CmisProperty{
+				PropertyDefinition: &cmis.PropertyDefinition{
+					Name: "cmis:parentId",
+				},
+			},
+		},
+	}
+	go createObject(&cmisObject)
+}
+
+func onCreateDocument(b *tui.Button) {
+	name := createDocumentTextEdit.Text()
+	if name == "" {
+		statusBar.SetText("Enter a document name!")
+		return
+	}
+}
+
+func onDeleteDocument(b *tui.Button) {
+	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), folder.GetId())
+	if documentList.SelectedItem() == navUp {
+		return
+	}
+	pos := documentList.Selected()
+	if !isRootFolder {
+		pos--
+	}
+	object := folder.Children[pos]
+	go deleteObject(object.GetId())
 }
 
 func getLogoContainer() *tui.Box {

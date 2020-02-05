@@ -50,10 +50,11 @@ func (c *Cmis) GetObject(cmisObjectID *cmis.CmisObjectId, stream cmis.CmisServic
 	return nil
 }
 
-func (c *Cmis) CreateObject(ctx context.Context, req *cmis.CmisObject) (*cmis.CmisObject, error) {
+func (c *Cmis) CreateObject(ctx context.Context, cmisObject *cmis.CmisObject) (*cmis.CmisObject, error) {
+
 	return nil, status.Errorf(codes.Unimplemented, "method CreateObject not implemented")
 }
 
-func (*Cmis) DeleteObject(ctx context.Context, req *cmis.CmisObjectId) (*cmis.CmisObject, error) {
+func (*Cmis) DeleteObject(ctx context.Context, req *cmis.CmisObjectId) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteObject not implemented")
 }
