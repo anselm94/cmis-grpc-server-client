@@ -10,6 +10,7 @@ func ConvertRepositoryDaoToProto(repository *model.Repository) *cmis.Repository 
 		return nil
 	}
 	repositoryProto := &cmis.Repository{
+		Id:              int32(repository.ID),
 		Name:            repository.Name,
 		Description:     repository.Description,
 		RootFolder:      ConvertCmisObjectDaoToProto(repository.RootFolder, false),

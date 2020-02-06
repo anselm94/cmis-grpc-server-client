@@ -29,9 +29,17 @@ func main() {
 	}
 	defer db.Close()
 
+	//Uncomment to drop and reinitialise data
+	server.DropTables(db)
+
 	isDataInitRequired := !db.HasTable("repositories")
 	db.AutoMigrate(&model.Repository{}, &model.TypeDefinition{}, &model.PropertyDefinition{}, &model.CmisObject{}, &model.CmisProperty{})
+	db.Model(&model.TypeDefinition{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
+	db.Model(&model.PropertyDefinition{}).AddForeignKey("type_definition_id", "type_definitions(id)", "CASCADE", "CASCADE")
+	db.Model(&model.CmisObject{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
+	db.Model(&model.CmisObject{}).AddForeignKey("type_definition_id", "type_definitions(id)", "RESTRICT", "CASCADE")
 	db.Model(&model.CmisProperty{}).AddForeignKey("cmis_object_id", "cmis_objects(id)", "CASCADE", "CASCADE")
+	db.Model(&model.CmisProperty{}).AddForeignKey("property_definition_id", "property_definitions(id)", "RESTRICT", "CASCADE")
 	if isDataInitRequired {
 		server.CreateInitData(db)
 	}

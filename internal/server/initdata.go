@@ -45,7 +45,7 @@ func CreateInitData(db *gorm.DB) {
 		},
 	}
 
-	//Create repository
+	//Create repository and type definitions & corresponding property definitions
 	repository := &model.Repository{
 		Name:        "SAP Drive",
 		Description: "Cloud Storage by SAP",
@@ -124,6 +124,13 @@ func CreateInitData(db *gorm.DB) {
 	if err := db.Create(&documentA).Error; err != nil {
 		fmt.Println(err)
 	}
+}
 
-	fmt.Println(repository.Name)
+func DropTables(db *gorm.DB) {
+	db.DropTableIfExists("cmis_properties")
+	db.DropTableIfExists("cmis_objects")
+	db.DropTableIfExists("property_definitions")
+	db.DropTableIfExists("type_definitions")
+	db.DropTableIfExists("repositories")
+	db.DropTableIfExists("filing")
 }

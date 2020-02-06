@@ -22,7 +22,7 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmis.Repos
 		RootFolder:      &model.CmisObject{},
 		TypeDefinitions: []*model.TypeDefinition{},
 	}
-	c.DB.Find(&repository)
+	c.DB.First(&repository)
 	c.DB.Model(&repository).Related(&repository.RootFolder, "RootFolder")
 	c.DB.Preload("Properties").Find(&repository.RootFolder)
 	c.DB.Model(&repository).Related(&repository.TypeDefinitions, "TypeDefinitions")
