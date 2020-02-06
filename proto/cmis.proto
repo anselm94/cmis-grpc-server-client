@@ -51,7 +51,7 @@ message CreateObjectReq {
 
 service CmisService {
   rpc getRepository (google.protobuf.Empty) returns (Repository);
-  rpc getObject(CmisObjectId) returns (stream CmisObject);
+  rpc subscribeObject(stream CmisObjectId) returns (stream CmisObject);
   rpc createObject(CreateObjectReq) returns (google.protobuf.Empty);
   rpc deleteObject(CmisObjectId) returns (google.protobuf.Empty);
 }

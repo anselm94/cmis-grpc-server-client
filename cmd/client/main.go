@@ -40,6 +40,7 @@ var (
 	repository     *cmis.Repository
 	folder         *cmis.CmisObject
 )
+var objectIDChannel = make(chan *cmis.CmisObjectId)
 
 func setupUI() {
 	statusBar = tui.NewStatusBar("Not connected")
@@ -78,6 +79,7 @@ func main() {
 
 	cmisClient = cmis.NewCmisServiceClient(grpcConnection)
 
+	go subscribeObject()
 	go loadRepository()
 
 	setupUI()
@@ -92,29 +94,32 @@ func loadRepository() {
 	} else {
 		repository = repo
 		updateStatus(fmt.Sprintf("Connected to %s", repository.GetName()))
-		go loadObject(repository.GetRootFolder().GetId())
+		objectIDChannel <- repository.GetRootFolder().GetId()
 	}
 }
 
-func loadObject(objectID *cmis.CmisObjectId) {
-	ctxt, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	getObjectClient, err := cmisClient.GetObject(ctxt, objectID)
+func subscribeObject() {
+	cmisSubsObjectClient, err := cmisClient.SubscribeObject(context.Background())
 	if err != nil {
-		updateStatus(fmt.Sprintf("Error while loading folder %s -> %s", objectID, err))
-	} else {
-		for {
-			cmisObject, err := getObjectClient.Recv()
-			if err == io.EOF {
-				updateStatus("Server stopped sending updates")
-				return
-			} else if err != nil {
-				updateStatus(fmt.Sprintf("Error while streaming from server -> %s", err))
-				return
-			}
-			updateDocumentList(cmisObject)
-			updateStatus(fmt.Sprintf("Streaming the folder \"%s\" from server live", cmisObject.GetId()))
+		updateStatus(fmt.Sprintf("Error establishing a subscription -> %s", err))
+	}
+
+	for {
+		select {
+		case cmisObjectID := <-objectIDChannel:
+			cmisSubsObjectClient.Send(cmisObjectID)
+			updateStatus(fmt.Sprintf("Requested the object for ID - %d", cmisObjectID.Id))
 		}
+		cmisObject, err := cmisSubsObjectClient.Recv()
+		if err == io.EOF {
+			updateStatus("Server stopped sending updates")
+			return
+		} else if err != nil {
+			updateStatus(fmt.Sprintf("Error while streaming from server -> %s", err))
+			return
+		}
+		updateDocumentList(cmisObject)
+		updateStatus(fmt.Sprintf("Streaming the folder \"%d\" from server live", cmisObject.Id.Id))
 	}
 }
 
@@ -132,7 +137,7 @@ func createObject(name string, typeStr string) {
 		updateStatus(fmt.Sprintf("Failed to create object -> %s", err))
 	} else {
 		updateStatus(fmt.Sprintf("Created the object"))
-		go loadObject(folder.GetId())
+		objectIDChannel <- folder.GetId()
 	}
 }
 
@@ -144,7 +149,7 @@ func deleteObject(objectID *cmis.CmisObjectId) {
 		updateStatus(fmt.Sprintf("Failed to delete object -> %s", err))
 	} else {
 		updateStatus(fmt.Sprintf("Deleted the object %s", objectID))
-		go loadObject(folder.GetId())
+		objectIDChannel <- folder.GetId()
 	}
 }
 
@@ -190,7 +195,7 @@ func updateDocumentList(folderObject *cmis.CmisObject) {
 func onDocItemSelection(l *tui.List) {
 	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), folder.GetId())
 	if l.SelectedItem() == navUp {
-		go loadObject(folder.Parents[0].GetId())
+		objectIDChannel <- folder.Parents[0].GetId()
 	} else {
 		pos := l.Selected()
 		if !isRootFolder {
@@ -198,7 +203,7 @@ func onDocItemSelection(l *tui.List) {
 		}
 		object := folder.Children[pos]
 		if object.TypeDefinition.Name == typeFolder {
-			go loadObject(folder.Children[pos].GetId())
+			objectIDChannel <- folder.Children[pos].GetId()
 		}
 	}
 }

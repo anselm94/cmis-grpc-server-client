@@ -6,6 +6,7 @@ import (
 	"docserverclient/internal/server/model"
 	cmis "docserverclient/proto"
 	"fmt"
+	"io"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/jinzhu/gorm"
@@ -32,7 +33,24 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmis.Repos
 	return repositoryProto, nil
 }
 
-func (c *Cmis) GetObject(cmisObjectID *cmis.CmisObjectId, stream cmis.CmisService_GetObjectServer) error {
+func (c *Cmis) SubscribeObject(srv cmis.CmisService_SubscribeObjectServer) error {
+	for {
+		cmisObjectID, err := srv.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		cmisObject, err := c.getObject(cmisObjectID)
+		if err != nil {
+			return err
+		}
+		srv.Send(cmisObject)
+	}
+}
+
+func (c *Cmis) getObject(cmisObjectID *cmis.CmisObjectId) (*cmis.CmisObject, error) {
 	objectID := uint(cmisObjectID.GetId())
 	cmisObject := model.CmisObject{
 		ID:             objectID,
@@ -45,8 +63,7 @@ func (c *Cmis) GetObject(cmisObjectID *cmis.CmisObjectId, stream cmis.CmisServic
 	c.DB.Model(&cmisObject).Related(&cmisObject.TypeDefinition, "TypeDefinition")
 	c.DB.Preload("Parents").Preload("Children").Preload("Children.TypeDefinition").Preload("Children.Properties").Preload("Children.Properties.PropertyDefinition").Find(&cmisObject)
 	objectProto := server.ConvertCmisObjectDaoToProto(&cmisObject, true)
-	stream.Send(objectProto)
-	return nil
+	return objectProto, nil
 }
 
 func (c *Cmis) CreateObject(ctx context.Context, createReq *cmis.CreateObjectReq) (*empty.Empty, error) {
