@@ -6,13 +6,13 @@ import (
 	"log"
 	"net"
 
+	"docserverclient/internal/server"
 	"docserverclient/internal/server/model"
 	"docserverclient/internal/server/service"
 	cmis "docserverclient/proto"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-
 	"google.golang.org/grpc"
 )
 
@@ -28,7 +28,13 @@ func main() {
 		log.Fatalf("Error setting up DB -> %s", err)
 	}
 	defer db.Close()
+
+	isDataInitRequired := !db.HasTable("repositories")
 	db.AutoMigrate(&model.Repository{}, &model.TypeDefinition{}, &model.PropertyDefinition{}, &model.CmisObject{}, &model.CmisProperty{})
+	db.Model(&model.CmisProperty{}).AddForeignKey("cmis_object_id", "cmis_objects(id)", "CASCADE", "CASCADE")
+	if isDataInitRequired {
+		server.CreateInitData(db)
+	}
 
 	grpcServer := grpc.NewServer()
 	defer grpcServer.Stop()

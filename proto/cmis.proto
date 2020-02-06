@@ -6,6 +6,7 @@ import "google/protobuf/empty.proto";
 option go_package="cmis";
 
 message Repository {
+  int32 id = 1;
   string name = 2;
   string description = 3;
   CmisObject root_folder = 4;
@@ -41,9 +42,16 @@ message CmisObjectId {
   int32 id = 1;
 }
 
+message CreateObjectReq {
+  string name = 1;
+  string type = 2;
+  CmisObjectId parent_id = 3;
+  int32 repository_id = 4;
+}
+
 service CmisService {
   rpc getRepository (google.protobuf.Empty) returns (Repository);
   rpc getObject(CmisObjectId) returns (stream CmisObject);
-  rpc createObject(CmisObject) returns (CmisObject);
+  rpc createObject(CreateObjectReq) returns (google.protobuf.Empty);
   rpc deleteObject(CmisObjectId) returns (google.protobuf.Empty);
 }

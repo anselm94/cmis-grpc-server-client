@@ -12,11 +12,11 @@ func ConvertRepositoryDaoToProto(repository *model.Repository) *cmis.Repository 
 	repositoryProto := &cmis.Repository{
 		Name:            repository.Name,
 		Description:     repository.Description,
-		RootFolder:      ConvertCmisObjectDaoToProto(&repository.RootFolder, false),
+		RootFolder:      ConvertCmisObjectDaoToProto(repository.RootFolder, false),
 		TypeDefinitions: make([]*cmis.TypeDefinition, len(repository.TypeDefinitions)),
 	}
 	for index, typeDef := range repository.TypeDefinitions {
-		repositoryProto.TypeDefinitions[index] = ConvertTypeDefinitionDaoToProto(&typeDef)
+		repositoryProto.TypeDefinitions[index] = ConvertTypeDefinitionDaoToProto(typeDef)
 	}
 	return repositoryProto
 }
@@ -31,7 +31,7 @@ func ConvertTypeDefinitionDaoToProto(typeDefinition *model.TypeDefinition) *cmis
 		PropertyDefinitions: make([]*cmis.PropertyDefinition, len(typeDefinition.PropertyDefinitions)),
 	}
 	for index, propertyDef := range typeDefinition.PropertyDefinitions {
-		typeDefinitionProto.PropertyDefinitions[index] = ConvertPropertyDefinitionDaoToProto(&propertyDef)
+		typeDefinitionProto.PropertyDefinitions[index] = ConvertPropertyDefinitionDaoToProto(propertyDef)
 	}
 	return typeDefinitionProto
 }
@@ -65,7 +65,7 @@ func ConvertCmisObjectDaoToProto(cmisObject *model.CmisObject, includeChildren b
 	if cmisObject.Properties != nil {
 		properties = make([]*cmis.CmisProperty, len(cmisObject.Properties))
 		for index, property := range cmisObject.Properties {
-			properties[index] = ConvertCmisPropertyDaoToProto(&property)
+			properties[index] = ConvertCmisPropertyDaoToProto(property)
 		}
 	}
 
@@ -81,7 +81,7 @@ func ConvertCmisObjectDaoToProto(cmisObject *model.CmisObject, includeChildren b
 		Id: &cmis.CmisObjectId{
 			Id: int32(cmisObject.ID),
 		},
-		TypeDefinition: ConvertTypeDefinitionDaoToProto(&cmisObject.TypeDefinition),
+		TypeDefinition: ConvertTypeDefinitionDaoToProto(cmisObject.TypeDefinition),
 		Properties:     properties,
 		Children:       children,
 		Parents:        parents,
@@ -94,7 +94,7 @@ func ConvertCmisPropertyDaoToProto(cmisProperty *model.CmisProperty) *cmis.CmisP
 		return nil
 	}
 	propertyProto := &cmis.CmisProperty{
-		PropertyDefinition: ConvertPropertyDefinitionDaoToProto(&cmisProperty.PropertyDefinition),
+		PropertyDefinition: ConvertPropertyDefinitionDaoToProto(cmisProperty.PropertyDefinition),
 		Value:              cmisProperty.Value,
 	}
 	return propertyProto

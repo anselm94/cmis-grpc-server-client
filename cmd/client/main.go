@@ -20,6 +20,9 @@ const logoText = `
 ║  ║║║║╚═╗  ╠╦╝╠═╝║    ║║║│ │├┬┘├┴┐├┴┐├┤ ││││  ├─┤
 ╚═╝╩ ╩╩╚═╝  ╩╚═╩  ╚═╝  ╚╩╝└─┘┴└─┴ ┴└─┘└─┘┘└┘└─┘┴ ┴`
 const navUp = "⬆️ ..."
+const typeFolder = "cmis:folder"
+const typeDocument = "cmis:document"
+const propName = "cmis:name"
 
 var (
 	ui                     tui.UI
@@ -107,6 +110,7 @@ func loadObject(objectID *cmis.CmisObjectId) {
 				return
 			} else if err != nil {
 				updateStatus(fmt.Sprintf("Error while streaming from server -> %s", err))
+				return
 			}
 			updateDocumentList(cmisObject)
 			updateStatus(fmt.Sprintf("Streaming the folder \"%s\" from server live", cmisObject.GetId()))
@@ -114,14 +118,20 @@ func loadObject(objectID *cmis.CmisObjectId) {
 	}
 }
 
-func createObject(cmisObject *cmis.CmisObject) {
+func createObject(name string, typeStr string) {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	object, err := cmisClient.CreateObject(ctxt, cmisObject)
+	createRequest := &cmis.CreateObjectReq{
+		Name:         name,
+		Type:         typeStr,
+		ParentId:     folder.GetId(),
+		RepositoryId: repository.Id,
+	}
+	_, err := cmisClient.CreateObject(ctxt, createRequest)
 	if err != nil {
 		updateStatus(fmt.Sprintf("Failed to create object -> %s", err))
 	} else {
-		updateStatus(fmt.Sprintf("Created the object %s", object.Id.String()))
+		updateStatus(fmt.Sprintf("Created the object"))
 		go loadObject(folder.GetId())
 	}
 }
@@ -146,7 +156,7 @@ func updateStatus(status string) {
 
 func updateDocumentList(folderObject *cmis.CmisObject) {
 	folder = folderObject
-	if folder == nil || folder.Children == nil {
+	if folder == nil {
 		return
 	}
 	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), folder.GetId())
@@ -154,13 +164,13 @@ func updateDocumentList(folderObject *cmis.CmisObject) {
 	for index, child := range folder.Children {
 		var icon string
 		var name string
-		if child.GetTypeDefinition().GetName() == "cmis:folder" {
+		if child.GetTypeDefinition().GetName() == typeFolder {
 			icon = "📂"
 		} else {
 			icon = "📄"
 		}
 		for _, property := range child.GetProperties() {
-			if property.GetPropertyDefinition().GetName() == "cmis:name" {
+			if property.GetPropertyDefinition().GetName() == propName {
 				name = property.GetValue()
 			}
 		}
@@ -187,7 +197,7 @@ func onDocItemSelection(l *tui.List) {
 			pos--
 		}
 		object := folder.Children[pos]
-		if object.TypeDefinition.Name == "cmis:folder" {
+		if object.TypeDefinition.Name == typeFolder {
 			go loadObject(folder.Children[pos].GetId())
 		}
 	}
@@ -199,30 +209,7 @@ func onCreateFolder(b *tui.Button) {
 		statusBar.SetText("Enter a folder name!")
 		return
 	}
-	cmisObject := cmis.CmisObject{
-		TypeDefinition: &cmis.TypeDefinition{
-			Name: "cmis:folder",
-		},
-		Parents: []*cmis.CmisObject{
-			&cmis.CmisObject{
-				Id: folder.GetId(),
-			},
-		},
-		Properties: []*cmis.CmisProperty{
-			&cmis.CmisProperty{
-				PropertyDefinition: &cmis.PropertyDefinition{
-					Name: "cmis:name",
-				},
-				Value: name,
-			},
-			&cmis.CmisProperty{
-				PropertyDefinition: &cmis.PropertyDefinition{
-					Name: "cmis:parentId",
-				},
-			},
-		},
-	}
-	go createObject(&cmisObject)
+	go createObject(name, typeFolder)
 }
 
 func onCreateDocument(b *tui.Button) {
@@ -231,11 +218,13 @@ func onCreateDocument(b *tui.Button) {
 		statusBar.SetText("Enter a document name!")
 		return
 	}
+	go createObject(name, typeDocument)
 }
 
 func onDeleteDocument(b *tui.Button) {
 	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), folder.GetId())
 	if documentList.SelectedItem() == navUp {
+		statusBar.SetText("You cannot delete your navigator...")
 		return
 	}
 	pos := documentList.Selected()
@@ -299,7 +288,7 @@ func getActionContainer() *tui.Box {
 	)
 
 	// Delete a Document
-	deleteDocumentLabel := tui.NewLabel("Delete Selected Document")
+	deleteDocumentLabel := tui.NewLabel("Delete Selected : ")
 	deleteDocumentButton = tui.NewButton("[ 🚫 Delete Object   ]")
 	deleteDocumentButton.SetSizePolicy(tui.Minimum, tui.Minimum)
 	deleteDocumentContainer := tui.NewHBox(
