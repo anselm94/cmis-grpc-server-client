@@ -103,13 +103,22 @@ func subscribeObject() {
 	if err != nil {
 		updateStatus(fmt.Sprintf("Error establishing a subscription -> %s", err))
 	}
+	go streamObjectIdsToServer(cmisSubsObjectClient)
+	go streamObjectsFromServer(cmisSubsObjectClient)
+}
 
+func streamObjectIdsToServer(cmisSubsObjectClient cmis.CmisService_SubscribeObjectClient) {
 	for {
 		select {
 		case cmisObjectID := <-objectIDChannel:
 			cmisSubsObjectClient.Send(cmisObjectID)
 			updateStatus(fmt.Sprintf("Requested the object for ID - %d", cmisObjectID.Id))
 		}
+	}
+}
+
+func streamObjectsFromServer(cmisSubsObjectClient cmis.CmisService_SubscribeObjectClient) {
+	for {
 		cmisObject, err := cmisSubsObjectClient.Recv()
 		if err == io.EOF {
 			updateStatus("Server stopped sending updates")
@@ -137,7 +146,6 @@ func createObject(name string, typeStr string) {
 		updateStatus(fmt.Sprintf("Failed to create object -> %s", err))
 	} else {
 		updateStatus(fmt.Sprintf("Created the object"))
-		objectIDChannel <- folder.GetId()
 	}
 }
 
@@ -149,7 +157,6 @@ func deleteObject(objectID *cmis.CmisObjectId) {
 		updateStatus(fmt.Sprintf("Failed to delete object -> %s", err))
 	} else {
 		updateStatus(fmt.Sprintf("Deleted the object %s", objectID))
-		objectIDChannel <- folder.GetId()
 	}
 }
 

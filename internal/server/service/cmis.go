@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/jinzhu/gorm"
 )
@@ -34,19 +35,51 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmis.Repos
 }
 
 func (c *Cmis) SubscribeObject(srv cmis.CmisService_SubscribeObjectServer) error {
+	var cmisObjectID *cmis.CmisObjectId
+	done := make(chan bool)
+	go streamObjectIdsFromClient(srv, done, cmisObjectID, c)
+	go streamObjectToClient(srv, done, cmisObjectID, c)
+	<-done
+	return nil
+}
+
+func streamObjectIdsFromClient(srv cmis.CmisService_SubscribeObjectServer, done chan bool, cmisObjectID *cmis.CmisObjectId, c *Cmis) {
 	for {
-		cmisObjectID, err := srv.Recv()
+		objectID, err := srv.Recv()
 		if err == io.EOF {
-			return nil
+			done <- true
 		}
 		if err != nil {
-			return err
+			done <- true
 		}
+		cmisObjectID = objectID
 		cmisObject, err := c.getObject(cmisObjectID)
 		if err != nil {
-			return err
+			done <- true
 		}
 		srv.Send(cmisObject)
+	}
+}
+
+func streamObjectToClient(srv cmis.CmisService_SubscribeObjectServer, done chan bool, cmisObjectID *cmis.CmisObjectId, c *Cmis) {
+	dbCallback := &DBCallback{
+		channel: make(chan int),
+	}
+	createCallbackID := uniuri.New()
+	deleteCallbackID := uniuri.New()
+	c.DB.Callback().Create().After("gorm:create").Register(createCallbackID, dbCallback.onAfterCreate)
+	c.DB.Callback().Delete().After("gorm:delete").Register(deleteCallbackID, dbCallback.onAfterCreate)
+	defer c.DB.Callback().Create().After("gorm:create").Remove(createCallbackID)
+	defer c.DB.Callback().Delete().After("gorm:delete").Remove(deleteCallbackID)
+	for {
+		select {
+		case <-dbCallback.channel:
+			cmisObject, err := c.getObject(cmisObjectID)
+			if err != nil {
+				done <- true
+			}
+			srv.Send(cmisObject)
+		}
 	}
 }
 
@@ -64,6 +97,16 @@ func (c *Cmis) getObject(cmisObjectID *cmis.CmisObjectId) (*cmis.CmisObject, err
 	c.DB.Preload("Parents").Preload("Children").Preload("Children.TypeDefinition").Preload("Children.Properties").Preload("Children.Properties.PropertyDefinition").Find(&cmisObject)
 	objectProto := server.ConvertCmisObjectDaoToProto(&cmisObject, true)
 	return objectProto, nil
+}
+
+type DBCallback struct {
+	channel chan int
+}
+
+func (dc *DBCallback) onAfterCreate(scope *gorm.Scope) {
+	if scope.TableName() == "cmis_objects" {
+		dc.channel <- 1
+	}
 }
 
 func (c *Cmis) CreateObject(ctx context.Context, createReq *cmis.CreateObjectReq) (*empty.Empty, error) {
