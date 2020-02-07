@@ -2,6 +2,7 @@ package main
 
 import (
 	"docserverclient"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -17,6 +18,9 @@ import (
 )
 
 func main() {
+	shouldCreateInitData := flag.Bool("populate", false, "Populates some data for initial run. Creates a repository, typedefinitions for folder & document, name & parentId propertydefinitions for each of typedefinitions and a folder & a document in the root folder")
+	flag.Parse()
+
 	appConfig := docserverclient.NewDefaultConfig()
 	listener, err := net.Listen("tcp", appConfig.AppPort)
 	if err != nil {
@@ -29,18 +33,17 @@ func main() {
 	}
 	defer db.Close()
 
-	//Uncomment to drop and reinitialise data
-	server.DropTables(db)
-
-	isDataInitRequired := !db.HasTable("repositories")
+	if *shouldCreateInitData {
+		server.DropTables(db)
+	}
 	db.AutoMigrate(&model.Repository{}, &model.TypeDefinition{}, &model.PropertyDefinition{}, &model.CmisObject{}, &model.CmisProperty{})
-	db.Model(&model.TypeDefinition{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
-	db.Model(&model.PropertyDefinition{}).AddForeignKey("type_definition_id", "type_definitions(id)", "CASCADE", "CASCADE")
-	db.Model(&model.CmisObject{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
-	db.Model(&model.CmisObject{}).AddForeignKey("type_definition_id", "type_definitions(id)", "RESTRICT", "CASCADE")
-	db.Model(&model.CmisProperty{}).AddForeignKey("cmis_object_id", "cmis_objects(id)", "CASCADE", "CASCADE")
-	db.Model(&model.CmisProperty{}).AddForeignKey("property_definition_id", "property_definitions(id)", "RESTRICT", "CASCADE")
-	if isDataInitRequired {
+	if *shouldCreateInitData {
+		db.Model(&model.TypeDefinition{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
+		db.Model(&model.PropertyDefinition{}).AddForeignKey("type_definition_id", "type_definitions(id)", "CASCADE", "CASCADE")
+		db.Model(&model.CmisObject{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
+		db.Model(&model.CmisObject{}).AddForeignKey("type_definition_id", "type_definitions(id)", "RESTRICT", "CASCADE")
+		db.Model(&model.CmisProperty{}).AddForeignKey("cmis_object_id", "cmis_objects(id)", "CASCADE", "CASCADE")
+		db.Model(&model.CmisProperty{}).AddForeignKey("property_definition_id", "property_definitions(id)", "RESTRICT", "CASCADE")
 		server.CreateInitData(db)
 	}
 
