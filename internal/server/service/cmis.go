@@ -36,50 +36,33 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmis.Repos
 
 func (c *Cmis) SubscribeObject(srv cmis.CmisService_SubscribeObjectServer) error {
 	var cmisObjectID *cmis.CmisObjectId
-	done := make(chan bool)
-	go streamObjectIdsFromClient(srv, done, cmisObjectID, c)
-	go streamObjectToClient(srv, done, cmisObjectID, c)
-	<-done
-	return nil
-}
-
-func streamObjectIdsFromClient(srv cmis.CmisService_SubscribeObjectServer, done chan bool, cmisObjectID *cmis.CmisObjectId, c *Cmis) {
-	for {
-		objectID, err := srv.Recv()
-		if err == io.EOF {
-			done <- true
-		}
-		if err != nil {
-			done <- true
-		}
-		cmisObjectID = objectID
-		cmisObject, err := c.getObject(cmisObjectID)
-		if err != nil {
-			done <- true
-		}
-		srv.Send(cmisObject)
-	}
-}
-
-func streamObjectToClient(srv cmis.CmisService_SubscribeObjectServer, done chan bool, cmisObjectID *cmis.CmisObjectId, c *Cmis) {
 	dbCallback := &DBCallback{
-		channel: make(chan int),
+		c:            c,
+		cmisObjectID: cmisObjectID,
+		srv:          srv,
 	}
 	createCallbackID := uniuri.New()
 	deleteCallbackID := uniuri.New()
-	c.DB.Callback().Create().After("gorm:create").Register(createCallbackID, dbCallback.onAfterCreate)
-	c.DB.Callback().Delete().After("gorm:delete").Register(deleteCallbackID, dbCallback.onAfterCreate)
-	defer c.DB.Callback().Create().After("gorm:create").Remove(createCallbackID)
-	defer c.DB.Callback().Delete().After("gorm:delete").Remove(deleteCallbackID)
+	c.DB.Callback().Create().Register(createCallbackID, dbCallback.onTableUpdated)
+	c.DB.Callback().Delete().Register(deleteCallbackID, dbCallback.onTableUpdated)
+	defer c.DB.Callback().Create().Remove(createCallbackID)
+	defer c.DB.Callback().Delete().Remove(deleteCallbackID)
+
 	for {
-		select {
-		case <-dbCallback.channel:
-			cmisObject, err := c.getObject(cmisObjectID)
-			if err != nil {
-				done <- true
-			}
-			srv.Send(cmisObject)
+		objectID, err := srv.Recv()
+		if err == io.EOF {
+			return nil
 		}
+		if err != nil {
+			return nil
+		}
+		cmisObjectID = objectID
+		dbCallback.cmisObjectID = objectID
+		cmisObject, err := c.getObject(cmisObjectID)
+		if err != nil {
+			return nil
+		}
+		srv.Send(cmisObject)
 	}
 }
 
@@ -100,12 +83,15 @@ func (c *Cmis) getObject(cmisObjectID *cmis.CmisObjectId) (*cmis.CmisObject, err
 }
 
 type DBCallback struct {
-	channel chan int
+	c            *Cmis
+	cmisObjectID *cmis.CmisObjectId
+	srv          cmis.CmisService_SubscribeObjectServer
 }
 
-func (dc *DBCallback) onAfterCreate(scope *gorm.Scope) {
+func (dc *DBCallback) onTableUpdated(scope *gorm.Scope) {
 	if scope.TableName() == "cmis_objects" {
-		dc.channel <- 1
+		cmisObject, _ := dc.c.getObject(dc.cmisObjectID)
+		dc.srv.Send(cmisObject)
 	}
 }
 
