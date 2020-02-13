@@ -83,13 +83,13 @@ func (c *Cmis) SubscribeObject(srv cmis.CmisService_SubscribeObjectServer) error
 
 	for {
 		objectID, err := srv.Recv() // Client streams the ObjectID continuosly
-		log.Printf("Request for a CmisObject with ID - \"%d\"", objectID.Id)
 		if err == io.EOF {
 			return nil
 		}
 		if err != nil {
 			return nil
 		}
+		log.Printf("Request for a CmisObject with ID - \"%d\"", objectID.Id)
 		// Hold the state of the client (i.e. the folder's ObjectID), until the connection is terminated
 		cmisObjectID = objectID
 		dbCallback.cmisObjectID = objectID
