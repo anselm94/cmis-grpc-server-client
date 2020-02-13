@@ -34,10 +34,15 @@ func main() {
 	defer db.Close()
 
 	if *shouldCreateInitData {
+		log.Println("Data population requested")
+		log.Println("Dropping tables if already exists...")
 		server.DropTables(db)
 	}
+	log.Println("Migrating tables...")
 	db.AutoMigrate(&model.Repository{}, &model.TypeDefinition{}, &model.PropertyDefinition{}, &model.CmisObject{}, &model.CmisProperty{})
+	log.Println("Migration complete")
 	if *shouldCreateInitData {
+		log.Println("Creating DB constraints...")
 		db.Model(&model.TypeDefinition{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
 		db.Model(&model.PropertyDefinition{}).AddForeignKey("type_definition_id", "type_definitions(id)", "CASCADE", "CASCADE")
 		db.Model(&model.CmisObject{}).AddForeignKey("repository_id", "repositories(id)", "CASCADE", "CASCADE")
@@ -53,6 +58,7 @@ func main() {
 	cmis.RegisterCmisServiceServer(grpcServer, &service.Cmis{
 		DB: db,
 	})
+	log.Printf("Listening to gRPC requests at %s:%s", appConfig.AppHost, appConfig.AppPort)
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Error while serving gRPC -> %s", err)
 	}

@@ -5,6 +5,7 @@ import (
 	cmis "docserverclient/proto"
 )
 
+// ConvertRepositoryDaoToProto converts Repository Dao to Protobuf format
 func ConvertRepositoryDaoToProto(repository *model.Repository) *cmis.Repository {
 	if repository == nil || repository.ID == 0 {
 		return nil
@@ -22,6 +23,7 @@ func ConvertRepositoryDaoToProto(repository *model.Repository) *cmis.Repository 
 	return repositoryProto
 }
 
+// ConvertTypeDefinitionDaoToProto converts TypeDefinition Dao to Protobuf format
 func ConvertTypeDefinitionDaoToProto(typeDefinition *model.TypeDefinition) *cmis.TypeDefinition {
 	if typeDefinition == nil || typeDefinition.ID == 0 {
 		return nil
@@ -37,6 +39,7 @@ func ConvertTypeDefinitionDaoToProto(typeDefinition *model.TypeDefinition) *cmis
 	return typeDefinitionProto
 }
 
+// ConvertPropertyDefinitionDaoToProto converts PropertyDefinition Dao to Protobuf format
 func ConvertPropertyDefinitionDaoToProto(propertyDefinition *model.PropertyDefinition) *cmis.PropertyDefinition {
 	if propertyDefinition == nil || propertyDefinition.ID == 0 {
 		return nil
@@ -49,6 +52,7 @@ func ConvertPropertyDefinitionDaoToProto(propertyDefinition *model.PropertyDefin
 	return propertyDefinitionProto
 }
 
+// ConvertCmisObjectDaoToProto converts CmisObject Dao to Protobuf format
 func ConvertCmisObjectDaoToProto(cmisObject *model.CmisObject, includeChildren bool) *cmis.CmisObject {
 	if cmisObject == nil || cmisObject.ID == 0 {
 		return nil
@@ -90,6 +94,7 @@ func ConvertCmisObjectDaoToProto(cmisObject *model.CmisObject, includeChildren b
 	return object
 }
 
+// ConvertCmisPropertyDaoToProto converts CmisProperty Dao to Protobuf format
 func ConvertCmisPropertyDaoToProto(cmisProperty *model.CmisProperty) *cmis.CmisProperty {
 	if cmisProperty == nil || cmisProperty.ID == 0 {
 		return nil

@@ -7,65 +7,102 @@ import (
 	cmis "docserverclient/proto"
 	"fmt"
 	"io"
+	"log"
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/jinzhu/gorm"
 )
 
+// Cmis is a gRPC server implementation
 type Cmis struct {
 	cmis.UnimplementedCmisServiceServer
 	DB *gorm.DB
 }
 
+// GetRepository callback for Unary call to get the default repository
 func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmis.Repository, error) {
+	log.Printf("Request to fetch the default repository")
 	repository := model.Repository{
-		ID:              1,
+		ID:              1, // default Repository ID
 		RootFolder:      &model.CmisObject{},
 		TypeDefinitions: []*model.TypeDefinition{},
 	}
-	c.DB.First(&repository)
-	c.DB.Model(&repository).Related(&repository.RootFolder, "RootFolder")
-	c.DB.Preload("Properties").Find(&repository.RootFolder)
-	c.DB.Model(&repository).Related(&repository.TypeDefinitions, "TypeDefinitions")
-	c.DB.Preload("PropertyDefinitions").Find(&repository.TypeDefinitions)
-
+	// load the Repository data
+	if err := c.DB.First(&repository).Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	// Load the root folder data
+	if err := c.DB.Model(&repository).Related(&repository.RootFolder, "RootFolder").Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	// Load the properties for root folder
+	if err := c.DB.Preload("Properties").Find(&repository.RootFolder).Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	// Load the type definitions for the repository
+	if err := c.DB.Model(&repository).Related(&repository.TypeDefinitions, "TypeDefinitions").Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	// Load the corresponding property definitions for type definitions loaded
+	if err := c.DB.Preload("PropertyDefinitions").Find(&repository.TypeDefinitions).Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	repositoryProto := server.ConvertRepositoryDaoToProto(&repository)
 	return repositoryProto, nil
 }
 
+// SubscribeObject callback for Bidirectional RPC streaming of data between client and server
+// Holds the state of the client i.e. the ObjectID of the folder it is in
+// * Client continuously streams the ObjectID of the folder it navigates in
+// * Server sends back the list of folder/documents in the event of ObjectID requisition or
+//   any folder/document created/deleted
+// TODO - Notify the client only if any of the folder/document creation/deletion happens
+//        in the folder the client is listening to
 func (c *Cmis) SubscribeObject(srv cmis.CmisService_SubscribeObjectServer) error {
-	var cmisObjectID *cmis.CmisObjectId
+	var cmisObjectID *cmis.CmisObjectId // ObjectID of the folder, the client is in
 	dbCallback := &DBCallback{
 		c:            c,
 		cmisObjectID: cmisObjectID,
 		srv:          srv,
 	}
+
+	// Create a soft-trigger (not a DB trigger) for both Create/Delete operation
+	// Will be automatically released, if the bidirectional streaming is end from the client
 	createCallbackID := uniuri.New()
 	deleteCallbackID := uniuri.New()
-	c.DB.Callback().Create().Register(createCallbackID, dbCallback.onTableUpdated)
-	c.DB.Callback().Delete().Register(deleteCallbackID, dbCallback.onTableUpdated)
+	c.DB.Callback().Create().Register(createCallbackID, dbCallback.OnTableUpdated)
+	c.DB.Callback().Delete().Register(deleteCallbackID, dbCallback.OnTableUpdated)
 	defer c.DB.Callback().Create().Remove(createCallbackID)
 	defer c.DB.Callback().Delete().Remove(deleteCallbackID)
 
 	for {
-		objectID, err := srv.Recv()
+		objectID, err := srv.Recv() // Client streams the ObjectID continuosly
+		log.Printf("Request for a CmisObject with ID - \"%d\"", objectID.Id)
 		if err == io.EOF {
 			return nil
 		}
 		if err != nil {
 			return nil
 		}
+		// Hold the state of the client (i.e. the folder's ObjectID), until the connection is terminated
 		cmisObjectID = objectID
 		dbCallback.cmisObjectID = objectID
-		cmisObject, err := c.getObject(cmisObjectID)
-		if err != nil {
-			return nil
+		if cmisObject, err := c.getObject(cmisObjectID); err == nil {
+			srv.Send(cmisObject)
+		} else {
+			log.Print(err)
+			return err
 		}
-		srv.Send(cmisObject)
 	}
 }
 
+// getObject retrieves the CmisObject from the DB and converts to Proto
 func (c *Cmis) getObject(cmisObjectID *cmis.CmisObjectId) (*cmis.CmisObject, error) {
 	objectID := uint(cmisObjectID.GetId())
 	cmisObject := model.CmisObject{
@@ -75,32 +112,36 @@ func (c *Cmis) getObject(cmisObjectID *cmis.CmisObjectId) (*cmis.CmisObject, err
 		Children:       []*model.CmisObject{},
 		Parents:        []*model.CmisObject{},
 	}
-	c.DB.Find(&cmisObject)
-	c.DB.Model(&cmisObject).Related(&cmisObject.TypeDefinition, "TypeDefinition")
-	c.DB.Preload("Parents").Preload("Children").Preload("Children.TypeDefinition").Preload("Children.Properties").Preload("Children.Properties.PropertyDefinition").Find(&cmisObject)
+	if err := c.DB.Find(&cmisObject).Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	if err := c.DB.Model(&cmisObject).Related(&cmisObject.TypeDefinition, "TypeDefinition").Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	if err := c.DB.Preload("Properties").Preload("Properties.PropertyDefinition").Find(&cmisObject).Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	if err := c.DB.Preload("Parents").Preload("Children").Preload("Children.TypeDefinition").Preload("Children.Properties").Preload("Children.Properties.PropertyDefinition").Find(&cmisObject).Error; err != nil {
+		log.Print(err)
+		return nil, err
+	}
 	objectProto := server.ConvertCmisObjectDaoToProto(&cmisObject, true)
 	return objectProto, nil
 }
 
-type DBCallback struct {
-	c            *Cmis
-	cmisObjectID *cmis.CmisObjectId
-	srv          cmis.CmisService_SubscribeObjectServer
-}
-
-func (dc *DBCallback) onTableUpdated(scope *gorm.Scope) {
-	if scope.TableName() == "cmis_objects" {
-		cmisObject, _ := dc.c.getObject(dc.cmisObjectID)
-		dc.srv.Send(cmisObject)
-	}
-}
-
+// CreateObject callback for Unary call to create a document/folder/any type based on the typeID and name
 func (c *Cmis) CreateObject(ctx context.Context, createReq *cmis.CreateObjectReq) (*empty.Empty, error) {
+	log.Printf("Request to create an object with name \"%s\" and type \"%s\"", createReq.Name, createReq.Type)
+	// Reference Name property
 	namePropDef := model.PropertyDefinition{
 		TypeDefinition: &model.TypeDefinition{
 			Name: createReq.Type,
 		},
 	}
+	// Reference PropertyID property
 	parentIDPropDef := model.PropertyDefinition{
 		TypeDefinition: &model.TypeDefinition{
 			Name: createReq.Type,
@@ -109,11 +150,22 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmis.CreateObjectReq
 	typeDef := model.TypeDefinition{}
 	parentCmisObject := model.CmisObject{}
 
-	c.DB.Preload("TypeDefinition").Where("name = ?", "cmis:name").First(&namePropDef)
-	c.DB.Preload("TypeDefinition").Where("name = ?", "cmis:parentId").First(&parentIDPropDef)
-	c.DB.Where("name = ?", createReq.Type).First(&typeDef)
-	c.DB.Find(&parentCmisObject, uint(createReq.ParentId.Id))
+	// Load the Type Definitions and the property definitions
+	if err := c.DB.Preload("TypeDefinition").Where("name = ?", "cmis:name").First(&namePropDef).Error; err != nil {
+		return &empty.Empty{}, err
+	}
+	if err := c.DB.Preload("TypeDefinition").Where("name = ?", "cmis:parentId").First(&parentIDPropDef).Error; err != nil {
+		return &empty.Empty{}, err
+	}
+	if err := c.DB.Where("name = ?", createReq.Type).First(&typeDef).Error; err != nil {
+		return &empty.Empty{}, err
+	}
+	// Load the parent object, so that the new object can be attached as a 'filing' relationship
+	if err := c.DB.Find(&parentCmisObject, uint(createReq.ParentId.Id)).Error; err != nil {
+		return &empty.Empty{}, err
+	}
 
+	// Assemble the CMIS object to be created
 	cmisObject := model.CmisObject{
 		Properties: []*model.CmisProperty{
 			&model.CmisProperty{
@@ -130,25 +182,52 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmis.CreateObjectReq
 		},
 		RepositoryID: uint(createReq.RepositoryId),
 	}
+	// Create the object in DB
 	if err := c.DB.Create(&cmisObject).Error; err != nil {
 		return &empty.Empty{}, err
 	}
 	return &empty.Empty{}, nil
 }
 
+// DeleteObject callback for Unary RPC request to delete an Object
+// Deletes the `CmisObject`, along with its associated `CmisProperties` and delete the `filing` (parent-child) relationship
+// TODO - Delete tree to be implemented. Currently deleting a folder, orphans its kids (you know, how much you owe then!? in cleaning the DB)
 func (c *Cmis) DeleteObject(ctx context.Context, objectID *cmis.CmisObjectId) (*empty.Empty, error) {
+	log.Printf("Request to delete the object with ID \"%d\"", objectID.Id)
 	cmisObject := &model.CmisObject{
 		ID:         uint(objectID.Id),
 		Properties: []*model.CmisProperty{},
 		Parents:    []*model.CmisObject{},
 	}
 	// Load the object to be deleted
-	c.DB.Preload("Properties").Preload("Parents").Find(&cmisObject)
+	if err := c.DB.Preload("Properties").Preload("Parents").Find(&cmisObject).Error; err != nil {
+		return &empty.Empty{}, err
+	}
 	// Cut ties with the parent by deleting the relationship
-	c.DB.Model(&cmisObject).Association("Parents").Clear()
+	if err := c.DB.Model(&cmisObject).Association("Parents").Clear().Error; err != nil {
+		return &empty.Empty{}, err
+	}
 	// Slash the lone object and its properties
 	if err := c.DB.Model(&cmisObject).Delete(cmisObject).Error; err != nil {
 		return &empty.Empty{}, err
 	}
 	return &empty.Empty{}, nil
+}
+
+// DBCallback holds the callback for each of the bidirectional connection,
+// and will notify the client of any creation/deletion of records in CmisObject table
+// The reference `cmisObjectID` holds the objectID of the folder, the client is in
+type DBCallback struct {
+	c            *Cmis
+	cmisObjectID *cmis.CmisObjectId
+	srv          cmis.CmisService_SubscribeObjectServer
+}
+
+// OnTableUpdated will be called for every operation on DB's Create/Delete queries
+func (dc *DBCallback) OnTableUpdated(scope *gorm.Scope) {
+	if scope.TableName() == "cmis_objects" { // Reject any updates not happening in CmisObjects table
+		log.Printf("Updating the client for the folder ID \"%d\"", dc.cmisObjectID.Id)
+		cmisObject, _ := dc.c.getObject(dc.cmisObjectID)
+		dc.srv.Send(cmisObject) // Update the client of updates in it's current folder
+	}
 }

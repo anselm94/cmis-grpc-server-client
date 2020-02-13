@@ -43,6 +43,7 @@ var (
 )
 var objectIDChannel = make(chan *cmis.CmisObjectId)
 
+// Setup the initial UI
 func setupUI() {
 	statusBar = tui.NewStatusBar("Not connected")
 	window := tui.NewVBox(
@@ -86,6 +87,7 @@ func main() {
 	setupUI()
 }
 
+// ========== CMIS Operations ==========
 func loadRepository() {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -160,6 +162,8 @@ func deleteObject(objectID *cmis.CmisObjectId) {
 	}
 }
 
+// ========== UI Updates ==========
+
 func updateStatus(status string) {
 	ui.Update(func() {
 		statusBar.SetText(status)
@@ -214,6 +218,8 @@ func updateCurrentFolder(folderObject *cmis.CmisObject) {
 		}
 	})
 }
+
+// ========== UI Callbacks ==========
 
 func onDocItemSelection(l *tui.List) {
 	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), currentFolder.GetId())
