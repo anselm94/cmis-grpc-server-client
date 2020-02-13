@@ -34,11 +34,12 @@ var (
 	createDocumentTextEdit *tui.TextEdit
 	createDocumentButton   *tui.Button
 	deleteDocumentButton   *tui.Button
+	documentWrapper        *tui.Box
 
 	grpcConnection *grpc.ClientConn
 	cmisClient     cmis.CmisServiceClient
 	repository     *cmis.Repository
-	folder         *cmis.CmisObject
+	currentFolder  *cmis.CmisObject
 )
 var objectIDChannel = make(chan *cmis.CmisObjectId)
 
@@ -128,7 +129,6 @@ func streamObjectsFromServer(cmisSubsObjectClient cmis.CmisService_SubscribeObje
 			return
 		}
 		updateDocumentList(cmisObject)
-		updateStatus(fmt.Sprintf("Streaming the folder \"%d\" from server live", cmisObject.Id.Id))
 	}
 }
 
@@ -138,7 +138,7 @@ func createObject(name string, typeStr string) {
 	createRequest := &cmis.CreateObjectReq{
 		Name:         name,
 		Type:         typeStr,
-		ParentId:     folder.GetId(),
+		ParentId:     currentFolder.GetId(),
 		RepositoryId: repository.Id,
 	}
 	_, err := cmisClient.CreateObject(ctxt, createRequest)
@@ -167,13 +167,13 @@ func updateStatus(status string) {
 }
 
 func updateDocumentList(folderObject *cmis.CmisObject) {
-	folder = folderObject
-	if folder == nil {
+	updateCurrentFolder(folderObject)
+	if currentFolder == nil {
 		return
 	}
-	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), folder.GetId())
-	names := make([]string, len(folder.Children))
-	for index, child := range folder.Children {
+	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), currentFolder.GetId())
+	names := make([]string, len(currentFolder.Children))
+	for index, child := range currentFolder.Children {
 		var icon string
 		var name string
 		if child.GetTypeDefinition().GetName() == typeFolder {
@@ -199,18 +199,34 @@ func updateDocumentList(folderObject *cmis.CmisObject) {
 	})
 }
 
+func updateCurrentFolder(folderObject *cmis.CmisObject) {
+	currentFolder = folderObject
+	ui.Update(func() {
+		properties := currentFolder.GetProperties()
+		if len(properties) > 0 {
+			for _, prop := range properties {
+				if prop.GetPropertyDefinition().GetName() == propName {
+					name := prop.GetValue()
+					documentWrapper.SetTitle(fmt.Sprintf(" %s ", name))
+					statusBar.SetText(fmt.Sprintf("Live streaming the folder \"%s\" from server...", name))
+				}
+			}
+		}
+	})
+}
+
 func onDocItemSelection(l *tui.List) {
-	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), folder.GetId())
+	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), currentFolder.GetId())
 	if l.SelectedItem() == navUp {
-		objectIDChannel <- folder.Parents[0].GetId()
+		objectIDChannel <- currentFolder.Parents[0].GetId()
 	} else {
 		pos := l.Selected()
 		if !isRootFolder {
 			pos--
 		}
-		object := folder.Children[pos]
+		object := currentFolder.Children[pos]
 		if object.TypeDefinition.Name == typeFolder {
-			objectIDChannel <- folder.Children[pos].GetId()
+			objectIDChannel <- currentFolder.Children[pos].GetId()
 		}
 	}
 }
@@ -234,7 +250,7 @@ func onCreateDocument(b *tui.Button) {
 }
 
 func onDeleteDocument(b *tui.Button) {
-	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), folder.GetId())
+	isRootFolder := proto.Equal(repository.GetRootFolder().GetId(), currentFolder.GetId())
 	if documentList.SelectedItem() == navUp {
 		statusBar.SetText("You cannot delete your navigator...")
 		return
@@ -243,9 +259,11 @@ func onDeleteDocument(b *tui.Button) {
 	if !isRootFolder {
 		pos--
 	}
-	object := folder.Children[pos]
+	object := currentFolder.Children[pos]
 	go deleteObject(object.GetId())
 }
+
+// ========== Widget Creation ==========
 
 func getLogoContainer() *tui.Box {
 	logoContainer := tui.NewHBox(
@@ -260,11 +278,10 @@ func getLogoContainer() *tui.Box {
 func getDocumentContainer() *tui.Box {
 	documentList = tui.NewList()
 	documentList.SetFocused(true)
-	documentWrapper := tui.NewVBox(
+	documentWrapper = tui.NewVBox(
 		documentList,
 	)
 	documentWrapper.SetBorder(true)
-	documentWrapper.SetTitle(" Documents ")
 
 	documentContainer := tui.NewHBox(
 		documentWrapper,
