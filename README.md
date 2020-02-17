@@ -4,6 +4,8 @@ A 3 day implementation of a Documents Server and a Client Workbench allowing cre
 
 ## Overview
 
+![Demo](./docs/demo.gif)
+
 The *domain-modelling* follows that of *CMIS* but is minimal to show key features of Document Management systems like creating type definitions and property definitions, creating/deleting/fetching folders/documents with attached properties. The folders and documents can be attached to any custom type definitions and can have custom properties based on the property definitions, the type definitions have.
 
 The server is written using Golang and utilizes the [concurrency](https://tour.golang.org/concurrency/1) for high-performance and supports server to client push via GORM's DB callbacks (which is not a DB trigger) after every create/delete of objects in DB.
