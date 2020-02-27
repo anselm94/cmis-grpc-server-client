@@ -10,7 +10,7 @@ import (
 	"docserverclient/internal/server"
 	"docserverclient/internal/server/model"
 	"docserverclient/internal/server/service"
-	cmis "docserverclient/proto"
+	cmisproto "docserverclient/proto"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -55,7 +55,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	defer grpcServer.Stop()
 
-	cmis.RegisterCmisServiceServer(grpcServer, &service.Cmis{
+	cmisproto.RegisterCmisServiceServer(grpcServer, &service.Cmis{
 		DB: db,
 	})
 	log.Printf("Listening to gRPC requests at %s:%s", appConfig.GrpcAppHost, appConfig.GrpcAppPort)

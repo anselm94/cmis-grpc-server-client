@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"docserverclient"
-	cmis "docserverclient/proto"
+	cmisproto "docserverclient/proto"
 	"fmt"
 	"io"
 	"log"
@@ -37,11 +37,11 @@ var (
 	documentWrapper        *tui.Box
 
 	grpcConnection *grpc.ClientConn
-	cmisClient     cmis.CmisServiceClient
-	repository     *cmis.Repository
-	currentFolder  *cmis.CmisObject
+	cmisClient     cmisproto.CmisServiceClient
+	repository     *cmisproto.Repository
+	currentFolder  *cmisproto.CmisObject
 )
-var objectIDChannel = make(chan *cmis.CmisObjectId)
+var objectIDChannel = make(chan *cmisproto.CmisObjectId)
 
 // Setup the initial UI
 func setupUI() {
@@ -79,7 +79,7 @@ func main() {
 	}
 	defer grpcConnection.Close()
 
-	cmisClient = cmis.NewCmisServiceClient(grpcConnection)
+	cmisClient = cmisproto.NewCmisServiceClient(grpcConnection)
 
 	go subscribeObject()
 	go loadRepository()
@@ -110,7 +110,7 @@ func subscribeObject() {
 	go streamObjectsFromServer(cmisSubsObjectClient)
 }
 
-func streamObjectIdsToServer(cmisSubsObjectClient cmis.CmisService_SubscribeObjectClient) {
+func streamObjectIdsToServer(cmisSubsObjectClient cmisproto.CmisService_SubscribeObjectClient) {
 	for {
 		select {
 		case cmisObjectID := <-objectIDChannel:
@@ -120,7 +120,7 @@ func streamObjectIdsToServer(cmisSubsObjectClient cmis.CmisService_SubscribeObje
 	}
 }
 
-func streamObjectsFromServer(cmisSubsObjectClient cmis.CmisService_SubscribeObjectClient) {
+func streamObjectsFromServer(cmisSubsObjectClient cmisproto.CmisService_SubscribeObjectClient) {
 	for {
 		cmisObject, err := cmisSubsObjectClient.Recv()
 		if err == io.EOF {
@@ -137,7 +137,7 @@ func streamObjectsFromServer(cmisSubsObjectClient cmis.CmisService_SubscribeObje
 func createObject(name string, typeStr string) {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	createRequest := &cmis.CreateObjectReq{
+	createRequest := &cmisproto.CreateObjectReq{
 		Name:         name,
 		Type:         typeStr,
 		ParentId:     currentFolder.GetId(),
@@ -151,7 +151,7 @@ func createObject(name string, typeStr string) {
 	}
 }
 
-func deleteObject(objectID *cmis.CmisObjectId) {
+func deleteObject(objectID *cmisproto.CmisObjectId) {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, err := cmisClient.DeleteObject(ctxt, objectID)
@@ -170,7 +170,7 @@ func updateStatus(status string) {
 	})
 }
 
-func updateDocumentList(folderObject *cmis.CmisObject) {
+func updateDocumentList(folderObject *cmisproto.CmisObject) {
 	updateCurrentFolder(folderObject)
 	if currentFolder == nil {
 		return
@@ -203,7 +203,7 @@ func updateDocumentList(folderObject *cmis.CmisObject) {
 	})
 }
 
-func updateCurrentFolder(folderObject *cmis.CmisObject) {
+func updateCurrentFolder(folderObject *cmisproto.CmisObject) {
 	currentFolder = folderObject
 	ui.Update(func() {
 		properties := currentFolder.GetProperties()

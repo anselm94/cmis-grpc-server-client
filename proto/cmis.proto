@@ -3,7 +3,7 @@ package cmis;
 
 import "google/protobuf/empty.proto";
 
-option go_package="cmis";
+option go_package="cmisproto";
 
 message Repository {
   int32 id = 1;

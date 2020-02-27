@@ -4,7 +4,7 @@ import (
 	"context"
 	"docserverclient/internal/server"
 	"docserverclient/internal/server/model"
-	cmis "docserverclient/proto"
+	cmisproto "docserverclient/proto"
 	"fmt"
 	"io"
 	"log"
@@ -16,12 +16,12 @@ import (
 
 // Cmis is a gRPC server implementation
 type Cmis struct {
-	cmis.UnimplementedCmisServiceServer
+	cmisproto.UnimplementedCmisServiceServer
 	DB *gorm.DB
 }
 
 // GetRepository callback for Unary call to get the default repository
-func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmis.Repository, error) {
+func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmisproto.Repository, error) {
 	log.Printf("Request to fetch the default repository")
 	repository := model.Repository{
 		ID:              1, // default Repository ID
@@ -64,8 +64,8 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmis.Repos
 //   any folder/document created/deleted
 // TODO - Notify the client only if any of the folder/document creation/deletion happens
 //        in the folder the client is listening to
-func (c *Cmis) SubscribeObject(srv cmis.CmisService_SubscribeObjectServer) error {
-	var cmisObjectID *cmis.CmisObjectId // ObjectID of the folder, the client is in
+func (c *Cmis) SubscribeObject(srv cmisproto.CmisService_SubscribeObjectServer) error {
+	var cmisObjectID *cmisproto.CmisObjectId // ObjectID of the folder, the client is in
 	dbCallback := &DBCallback{
 		c:            c,
 		cmisObjectID: cmisObjectID,
@@ -103,7 +103,7 @@ func (c *Cmis) SubscribeObject(srv cmis.CmisService_SubscribeObjectServer) error
 }
 
 // getObject retrieves the CmisObject from the DB and converts to Proto
-func (c *Cmis) getObject(cmisObjectID *cmis.CmisObjectId) (*cmis.CmisObject, error) {
+func (c *Cmis) getObject(cmisObjectID *cmisproto.CmisObjectId) (*cmisproto.CmisObject, error) {
 	objectID := uint(cmisObjectID.GetId())
 	cmisObject := model.CmisObject{
 		ID:             objectID,
@@ -133,7 +133,7 @@ func (c *Cmis) getObject(cmisObjectID *cmis.CmisObjectId) (*cmis.CmisObject, err
 }
 
 // CreateObject callback for Unary call to create a document/folder/any type based on the typeID and name
-func (c *Cmis) CreateObject(ctx context.Context, createReq *cmis.CreateObjectReq) (*empty.Empty, error) {
+func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObjectReq) (*empty.Empty, error) {
 	log.Printf("Request to create an object with name \"%s\" and type \"%s\"", createReq.Name, createReq.Type)
 	// Reference Name property
 	namePropDef := model.PropertyDefinition{
@@ -192,7 +192,7 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmis.CreateObjectReq
 // DeleteObject callback for Unary RPC request to delete an Object
 // Deletes the `CmisObject`, along with its associated `CmisProperties` and delete the `filing` (parent-child) relationship
 // TODO - Delete tree to be implemented. Currently deleting a folder, orphans its kids (you know, how much you owe then!? in cleaning the DB)
-func (c *Cmis) DeleteObject(ctx context.Context, objectID *cmis.CmisObjectId) (*empty.Empty, error) {
+func (c *Cmis) DeleteObject(ctx context.Context, objectID *cmisproto.CmisObjectId) (*empty.Empty, error) {
 	log.Printf("Request to delete the object with ID \"%d\"", objectID.Id)
 	cmisObject := &model.CmisObject{
 		ID:         uint(objectID.Id),
@@ -219,8 +219,8 @@ func (c *Cmis) DeleteObject(ctx context.Context, objectID *cmis.CmisObjectId) (*
 // The reference `cmisObjectID` holds the objectID of the folder, the client is in
 type DBCallback struct {
 	c            *Cmis
-	cmisObjectID *cmis.CmisObjectId
-	srv          cmis.CmisService_SubscribeObjectServer
+	cmisObjectID *cmisproto.CmisObjectId
+	srv          cmisproto.CmisService_SubscribeObjectServer
 }
 
 // OnTableUpdated will be called for every operation on DB's Create/Delete queries

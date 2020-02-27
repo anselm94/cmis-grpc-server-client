@@ -18,7 +18,13 @@ func main() {
 }
 
 func browserRepository(w http.ResponseWriter, r *http.Request) {
-
+	vars := mux.Vars(r)
+	repositoryID, ok := vars["repositoryID"]
+	if ok {
+		// Return repository information
+	} else {
+		// Return array of repository information
+	}
 }
 
 func browserServices(w http.ResponseWriter, r *http.Request) {
