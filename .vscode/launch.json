@@ -5,20 +5,29 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Client",
+            "name": "Launch gRPC Client",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/client",
+            "program": "${workspaceFolder}/cmd/grpc-client",
             "env": {},
             "args": []
         },
         {
-            "name": "Launch Server",
+            "name": "Launch gRPC Server",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/server",
+            "program": "${workspaceFolder}/cmd/grpc-server",
+            "env": {},
+            "args": []
+        },
+        {
+            "name": "Launch CMIS Server",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/cmis-server",
             "env": {},
             "args": []
         }

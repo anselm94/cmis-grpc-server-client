@@ -73,9 +73,9 @@ func setupUI() {
 func main() {
 	config := docserverclient.NewDefaultConfig()
 
-	grpcConnection, err := grpc.Dial(fmt.Sprintf("%s%s", config.AppHost, config.AppPort), grpc.WithInsecure(), grpc.WithBlock())
+	grpcConnection, err := grpc.Dial(fmt.Sprintf("%s%s", config.GrpcAppHost, config.GrpcAppPort), grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("Connection could not be established with %s:%s -> %s", config.AppHost, config.AppPort, err)
+		log.Fatalf("Connection could not be established with %s:%s -> %s", config.GrpcAppHost, config.GrpcAppPort, err)
 	}
 	defer grpcConnection.Close()
 

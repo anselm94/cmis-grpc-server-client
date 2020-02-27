@@ -22,9 +22,9 @@ func main() {
 	flag.Parse()
 
 	appConfig := docserverclient.NewDefaultConfig()
-	listener, err := net.Listen("tcp", appConfig.AppPort)
+	listener, err := net.Listen("tcp", appConfig.GrpcAppPort)
 	if err != nil {
-		log.Fatalf("Failed to listen TCP on %s -> %s", appConfig.AppPort, err)
+		log.Fatalf("Failed to listen TCP on %s -> %s", appConfig.GrpcAppPort, err)
 	}
 
 	db, err := gorm.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", appConfig.DBHost, appConfig.DBPort, appConfig.DBUser, appConfig.DBName, appConfig.DBPassword, appConfig.DBSSLMode))
@@ -58,7 +58,7 @@ func main() {
 	cmis.RegisterCmisServiceServer(grpcServer, &service.Cmis{
 		DB: db,
 	})
-	log.Printf("Listening to gRPC requests at %s:%s", appConfig.AppHost, appConfig.AppPort)
+	log.Printf("Listening to gRPC requests at %s:%s", appConfig.GrpcAppHost, appConfig.GrpcAppPort)
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Error while serving gRPC -> %s", err)
 	}
