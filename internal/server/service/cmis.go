@@ -57,6 +57,10 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmisproto.
 	return repositoryProto, nil
 }
 
+func (c *Cmis) GetObject(ctx context.Context, objectID *cmisproto.CmisObjectId) (*CmisObject, error) {
+
+}
+
 // SubscribeObject callback for Bidirectional RPC streaming of data between client and server
 // Holds the state of the client i.e. the ObjectID of the folder it is in
 // * Client continuously streams the ObjectID of the folder it navigates in
