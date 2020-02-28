@@ -1,5 +1,12 @@
 package cmismodel
 
+// Exception
+
+type CmisException struct {
+	Message   string `json:"message"`
+	Exception string `json:"exception"`
+}
+
 // ******** Repository ********
 
 type Repository struct {

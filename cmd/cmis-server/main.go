@@ -51,12 +51,9 @@ func writeJSON(w http.ResponseWriter, data interface{}) {
 }
 
 func writeError(w http.ResponseWriter, err string) {
-	exceptionMsg := struct {
-		exception string
-		message   string
-	}{
-		exception: "notSupported",
-		message:   err,
+	exceptionMsg := cmismodel.CmisException{
+		Exception: "notSupported",
+		Message:   err,
 	}
 	jsonObject, _ := json.Marshal(exceptionMsg)
 	w.Header().Set("Content-Type", "application/json")
@@ -65,12 +62,9 @@ func writeError(w http.ResponseWriter, err string) {
 }
 
 func writeNotFound(w http.ResponseWriter, err string) {
-	exceptionMsg := struct {
-		exception string
-		message   string
-	}{
-		exception: "objectNotFound",
-		message:   err,
+	exceptionMsg := cmismodel.CmisException{
+		Exception: "objectNotFound",
+		Message:   err,
 	}
 	jsonObject, _ := json.Marshal(exceptionMsg)
 	w.Header().Set("Content-Type", "application/json")
