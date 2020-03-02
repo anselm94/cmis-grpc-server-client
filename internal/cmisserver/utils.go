@@ -88,11 +88,11 @@ func ConvertTypeDefinitionsProtoToCmis(typedefinitions []*cmisproto.TypeDefiniti
 func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, includePropertyDefinitions bool) *cmismodel.TypeDefinition {
 	cmisTypeDefinition := cmismodel.TypeDefinition{
 		ID:                       typedefinition.Name,
-		LocalName:                typedefinition.Description,
+		LocalName:                typedefinition.Name,
 		LocalNamespace:           "grpc-cmis",
-		DisplayName:              typedefinition.Description,
+		DisplayName:              typedefinition.Name,
 		QueryName:                typedefinition.Name,
-		Description:              typedefinition.Description,
+		Description:              typedefinition.Name,
 		BaseID:                   typedefinition.Name,
 		Creatable:                false,
 		Fileable:                 false,
@@ -134,4 +134,77 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 		cmisTypeDefinition.PropertyDefinitions = propertyDefinitions
 	}
 	return &cmisTypeDefinition
+}
+
+func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) *cmismodel.CmisObject {
+	cmisObject := cmismodel.CmisObject{}
+	if isSuccinctProperties {
+		cmisObject.SuccinctProperties = make(map[string]string)
+		for _, cmisproperty := range cmisobject.Properties {
+			cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = cmisproperty.Value
+		}
+	} else {
+		cmisObjectProperties := make([]*cmismodel.CmisProperty, len(cmisobject.Properties))
+		for index, cmisproperty := range cmisobject.Properties {
+			cmisObjectProperties[index] = &cmismodel.CmisProperty{
+				ID:          cmisproperty.PropertyDefinition.Name,
+				Type:        cmisproperty.PropertyDefinition.Datatype,
+				Cardinality: "single",
+				Value:       cmisproperty.Value,
+			}
+		}
+		cmisObject.Properties = &cmisObjectProperties
+	}
+	if includeAllowableActions {
+		cmisObject.AllowableActions = &cmismodel.AllowableActions{
+			CanDeleteObject:           true,
+			CanUpdateProperties:       false,
+			CanGetFolderTree:          false,
+			CanGetProperties:          true,
+			CanGetObjectRelationships: false,
+			CanGetObjectParents:       false,
+			CanGetFolderParent:        false,
+			CanGetDescendants:         false,
+			CanMoveObject:             false,
+			CanDeleteContentStream:    false,
+			CanCheckOut:               false,
+			CanCancelCheckOut:         false,
+			CanCheckIn:                false,
+			CanSetContentStream:       false,
+			CanGetAllVersions:         false,
+			CanAddObjectToFolder:      true,
+			CanRemoveObjectFromFolder: true,
+			CanGetContentStream:       false,
+			CanApplyPolicy:            false,
+			CanGetAppliedPolicies:     false,
+			CanRemovePolicy:           false,
+			CanGetChildren:            true,
+			CanCreateDocument:         true,
+			CanCreateFolder:           true,
+			CanCreateRelationship:     false,
+			CanCreateItem:             false,
+			CanDeleteTree:             false,
+			CanGetRenditions:          false,
+			CanGetACL:                 true,
+			CanApplyACL:               false,
+		}
+	}
+	if includeACL {
+		isExactACL := true
+		cmisObject.ACL = &cmismodel.ACL{
+			ACEs: []*cmismodel.ACE{
+				&cmismodel.ACE{
+					Principal: &cmismodel.Principal{
+						PrincipalID: "default",
+					},
+					IsDirect: true,
+					Permissions: []string{
+						"cmis:all",
+					},
+				},
+			},
+		}
+		cmisObject.ExactACL = &isExactACL
+	}
+	return &cmisObject
 }

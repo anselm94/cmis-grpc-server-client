@@ -11,6 +11,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -91,14 +92,13 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 	repositoryID, ok := vars["repositoryID"]
 	if ok {
 		cmisSelector := r.URL.Query().Get("cmisselector")
+		includePropertyDefinitions := r.URL.Query().Get("includePropertyDefinitions") == "true"
 		switch cmisSelector {
 		case "typeChildren":
-			includePropertyDefinitions := r.URL.Query().Get("includePropertyDefinitions") == "true"
 			typeChildren, _ := getTypeChildren(repositoryID, includePropertyDefinitions)
 			writeJSON(w, typeChildren)
 			return
 		case "typeDefinition":
-			includePropertyDefinitions := r.URL.Query().Get("includePropertyDefinitions") == "true"
 			typeID, _ := url.QueryUnescape(r.URL.Query().Get("typeId"))
 			typeDefinition, _ := getTypeDefinition(repositoryID, typeID, includePropertyDefinitions)
 			writeJSON(w, typeDefinition)
@@ -118,7 +118,18 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 	ok := true
 	if ok {
 		cmisSelector := r.URL.Query().Get("cmisselector")
+		objectID, _ := url.QueryUnescape(r.URL.Query().Get("objectId"))
+		isSuccinctProperties := r.URL.Query().Get("succinct") == "true"
+		includeACL := r.URL.Query().Get("includeACL") == "true"
+		includeAllowableActions := r.URL.Query().Get("includeAllowableActions") == "true"
 		switch cmisSelector {
+		case "object":
+			cmisObject, _ := getObject("1", objectID, isSuccinctProperties, includeAllowableActions, includeACL)
+			writeJSON(w, cmisObject)
+			return
+		case "children":
+			writeError(w, "Object ID not found")
+			return
 		default:
 			writeNotFound(w, "Object not found")
 		}
@@ -170,4 +181,15 @@ func getTypeDefinition(repositoryID string, typeID string, includePropertyDefini
 		}
 	}
 	return cmisserver.ConvertTypeDefinitionProtoToCmis(typedefinitionProto, includePropertyDefinitions), nil
+}
+
+func getObject(repositoryID string, objectID string, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) (*cmismodel.CmisObject, error) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmisObjectID, _ := strconv.Atoi(objectID)
+	cmisObjectProto, err := cmisClient.GetObject(ctxt, &cmisproto.CmisObjectId{Id: int32(cmisObjectID)})
+	if err != nil {
+		return nil, err
+	}
+	return cmisserver.ConvertCmisObjectProtoToCmis(cmisObjectProto, isSuccinctProperties, includeAllowableActions, includeACL), nil
 }

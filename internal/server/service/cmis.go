@@ -5,9 +5,9 @@ import (
 	"docserverclient/internal/server"
 	"docserverclient/internal/server/model"
 	cmisproto "docserverclient/proto"
-	"fmt"
 	"io"
 	"log"
+	"strconv"
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -57,8 +57,14 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmisproto.
 	return repositoryProto, nil
 }
 
-func (c *Cmis) GetObject(ctx context.Context, objectID *cmisproto.CmisObjectId) (*CmisObject, error) {
-
+// GetObject callback for Unary call (to support CMIS Server's getObject) to fetch the Object
+func (c *Cmis) GetObject(ctx context.Context, objectID *cmisproto.CmisObjectId) (*cmisproto.CmisObject, error) {
+	log.Printf("Request to get the Object with ID -> %s", objectID.Id)
+	cmisObject, err := c.getObject(objectID)
+	if err != nil {
+		return nil, err
+	}
+	return cmisObject, nil
 }
 
 // SubscribeObject callback for Bidirectional RPC streaming of data between client and server
@@ -139,29 +145,13 @@ func (c *Cmis) getObject(cmisObjectID *cmisproto.CmisObjectId) (*cmisproto.CmisO
 // CreateObject callback for Unary call to create a document/folder/any type based on the typeID and name
 func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObjectReq) (*empty.Empty, error) {
 	log.Printf("Request to create an object with name \"%s\" and type \"%s\"", createReq.Name, createReq.Type)
-	// Reference Name property
-	namePropDef := model.PropertyDefinition{
-		TypeDefinition: &model.TypeDefinition{
-			Name: createReq.Type,
-		},
+	typeDef := model.TypeDefinition{
+		PropertyDefinitions: []*model.PropertyDefinition{},
 	}
-	// Reference PropertyID property
-	parentIDPropDef := model.PropertyDefinition{
-		TypeDefinition: &model.TypeDefinition{
-			Name: createReq.Type,
-		},
-	}
-	typeDef := model.TypeDefinition{}
 	parentCmisObject := model.CmisObject{}
 
 	// Load the Type Definitions and the property definitions
-	if err := c.DB.Preload("TypeDefinition").Where("name = ?", "cmis:name").First(&namePropDef).Error; err != nil {
-		return &empty.Empty{}, err
-	}
-	if err := c.DB.Preload("TypeDefinition").Where("name = ?", "cmis:parentId").First(&parentIDPropDef).Error; err != nil {
-		return &empty.Empty{}, err
-	}
-	if err := c.DB.Where("name = ?", createReq.Type).First(&typeDef).Error; err != nil {
+	if err := c.DB.Preload("PropertyDefinitions").Where("name = ?", createReq.Type).First(&typeDef).Error; err != nil {
 		return &empty.Empty{}, err
 	}
 	// Load the parent object, so that the new object can be attached as a 'filing' relationship
@@ -171,16 +161,8 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 
 	// Assemble the CMIS object to be created
 	cmisObject := model.CmisObject{
-		Properties: []*model.CmisProperty{
-			&model.CmisProperty{
-				Value:                createReq.Name,
-				PropertyDefinitionID: namePropDef.ID,
-			}, &model.CmisProperty{
-				Value:                fmt.Sprint(createReq.ParentId.Id),
-				PropertyDefinitionID: parentIDPropDef.ID,
-			},
-		},
 		TypeDefinitionID: typeDef.ID,
+		Properties:       []*model.CmisProperty{}, // Create properties after object creation as ObjectID is not known in advance
 		Parents: []*model.CmisObject{
 			&parentCmisObject,
 		},
@@ -190,6 +172,35 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 	if err := c.DB.Create(&cmisObject).Error; err != nil {
 		return &empty.Empty{}, err
 	}
+
+	cmisObjectProperties := make([]*model.CmisProperty, len(typeDef.PropertyDefinitions))
+	for index, propertyDefinition := range typeDef.PropertyDefinitions {
+		cmisObjectProperty := model.CmisProperty{
+			PropertyDefinitionID: propertyDefinition.ID,
+		}
+		switch propertyDefinition.Name {
+		case "cmis:name":
+			cmisObjectProperty.Value = createReq.Name
+		case "cmis:parentId":
+			cmisObjectProperty.Value = strconv.Itoa(int(createReq.ParentId.Id))
+		case "cmis:objectId":
+			cmisObjectProperty.Value = strconv.Itoa(int(cmisObject.ID))
+		case "cmis:baseTypeId":
+			cmisObjectProperty.Value = createReq.Type
+		case "cmis:objectTypeId":
+			cmisObjectProperty.Value = createReq.Type
+		case "cmis:createdBy":
+			cmisObjectProperty.Value = "default"
+		case "cmis:lastModifiedBy":
+			cmisObjectProperty.Value = "default"
+		}
+		cmisObjectProperties[index] = &cmisObjectProperty
+	}
+	// Create the properties in DB as associations
+	if err := c.DB.Model(&cmisObject).Association("Properties").Append(&cmisObjectProperties).Error; err != nil {
+		return &empty.Empty{}, err
+	}
+
 	return &empty.Empty{}, nil
 }
 

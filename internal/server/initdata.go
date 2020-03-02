@@ -12,40 +12,107 @@ import (
 func CreateInitData(db *gorm.DB) {
 	log.Println("Populating some initial data...")
 
-	propDefFolderName := &model.PropertyDefinition{
+	// Property Definitions for Folder
+	// (Property Defintions for folder & documents are to be created individually,
+	// as each property definition is associated to either of the type definitions)
+	propDefFolderName := model.PropertyDefinition{
 		Name:        "cmis:name",
 		Description: "Name",
 		Type:        "string",
 	}
-	propDefFolderParentID := &model.PropertyDefinition{
+	propDefFolderParentID := model.PropertyDefinition{
 		Name:        "cmis:parentId",
 		Description: "Parent ID",
 		Type:        "integer",
 	}
-	propDefDocumentName := &model.PropertyDefinition{
+	propDefFolderObjectID := model.PropertyDefinition{
+		Name:        "cmis:objectId",
+		Description: "Object ID",
+		Type:        "string",
+	}
+	propDefFolderBaseTypeID := model.PropertyDefinition{
+		Name:        "cmis:baseTypeId",
+		Description: "Base Type ID",
+		Type:        "integer",
+	}
+	propDefFolderObjectTypeID := model.PropertyDefinition{
+		Name:        "cmis:objectTypeId",
+		Description: "Object Type ID",
+		Type:        "string",
+	}
+	propDefFolderCreatedBy := model.PropertyDefinition{
+		Name:        "cmis:createdBy",
+		Description: "Created By",
+		Type:        "string",
+	}
+	propDefFolderLastModifiedBy := model.PropertyDefinition{
+		Name:        "cmis:lastModifiedBy",
+		Description: "Last Modified By",
+		Type:        "string",
+	}
+
+	// Property Definitions for Documents
+	propDefDocumentName := model.PropertyDefinition{
 		Name:        "cmis:name",
 		Description: "Name",
 		Type:        "string",
 	}
-	propDefDocumentParentID := &model.PropertyDefinition{
+	propDefDocumentParentID := model.PropertyDefinition{
 		Name:        "cmis:parentId",
 		Description: "Parent ID",
 		Type:        "integer",
 	}
+	propDefDocumentObjectID := model.PropertyDefinition{
+		Name:        "cmis:objectId",
+		Description: "Object ID",
+		Type:        "string",
+	}
+	propDefDocumentBaseTypeID := model.PropertyDefinition{
+		Name:        "cmis:baseTypeId",
+		Description: "Base Type ID",
+		Type:        "integer",
+	}
+	propDefDocumentObjectTypeID := model.PropertyDefinition{
+		Name:        "cmis:objectTypeId",
+		Description: "Object Type ID",
+		Type:        "string",
+	}
+	propDefDocumentCreatedBy := model.PropertyDefinition{
+		Name:        "cmis:createdBy",
+		Description: "Created By",
+		Type:        "string",
+	}
+	propDefDocumentLastModifiedBy := model.PropertyDefinition{
+		Name:        "cmis:lastModifiedBy",
+		Description: "Last Modified By",
+		Type:        "string",
+	}
+
+	// Type Definitions
 	typeDefFolder := &model.TypeDefinition{
 		Name:        "cmis:folder",
 		Description: "Folder",
 		PropertyDefinitions: []*model.PropertyDefinition{
-			propDefFolderName,
-			propDefFolderParentID,
+			&propDefFolderName,
+			&propDefFolderParentID,
+			&propDefFolderObjectID,
+			&propDefFolderBaseTypeID,
+			&propDefFolderObjectTypeID,
+			&propDefFolderCreatedBy,
+			&propDefFolderLastModifiedBy,
 		},
 	}
 	typeDefDocument := &model.TypeDefinition{
 		Name:        "cmis:document",
 		Description: "Document",
 		PropertyDefinitions: []*model.PropertyDefinition{
-			propDefDocumentName,
-			propDefDocumentParentID,
+			&propDefDocumentName,
+			&propDefDocumentParentID,
+			&propDefDocumentObjectID,
+			&propDefDocumentBaseTypeID,
+			&propDefDocumentObjectTypeID,
+			&propDefDocumentCreatedBy,
+			&propDefDocumentLastModifiedBy,
 		},
 	}
 
@@ -64,7 +131,7 @@ func CreateInitData(db *gorm.DB) {
 		log.Printf("Repository with name \"%s\" created", repository.Name)
 		log.Printf("Type Definitions for \"%s\", \"%s\" are created in the repository \"%s\"", typeDefFolder.Name, typeDefDocument.Name, repository.Name)
 		log.Printf("Property Definitions for \"%s\", \"%s\" are created and linked to Type Definition \"%s\"", propDefFolderName.Name, propDefFolderParentID.Name, typeDefFolder.Name)
-		log.Printf("Property Definitions for \"%s\", \"%s\" are created and linked to Type Definition \"%s\"", propDefDocumentName.Name, propDefDocumentParentID.Name, typeDefDocument.Name)
+		log.Printf("Property Definitions for \"%s\", \"%s\" are created and linked to Type Definition \"%s\"", propDefFolderName.Name, propDefFolderParentID.Name, typeDefDocument.Name)
 	}
 
 	//Create Root folder
@@ -81,12 +148,37 @@ func CreateInitData(db *gorm.DB) {
 				PropertyDefinitionID: propDefFolderParentID.ID,
 				Value:                "",
 			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderBaseTypeID.ID,
+				Value:                typeDefFolder.Name,
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderObjectTypeID.ID,
+				Value:                typeDefFolder.Name,
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderCreatedBy.ID,
+				Value:                "default",
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderLastModifiedBy.ID,
+				Value:                "default",
+			},
 		},
 	}
 	if err := db.Create(&rootFolder).Error; err != nil {
 		fmt.Println(err)
 	} else {
 		log.Printf("A folder with name \"%s\" created", rootFolderName)
+	}
+	// Append CmisObjectID property after creating the object, as ID is dynamically generated
+	if err := db.Model(&rootFolder).Association("Properties").Append(&model.CmisProperty{
+		PropertyDefinitionID: propDefFolderObjectID.ID,
+		Value:                fmt.Sprint(rootFolder.ID),
+	}).Error; err != nil {
+		fmt.Println(err)
+	} else {
+		log.Printf("CmisObjectID \"%d\" is updated to object with name \"%s\"", rootFolder.ID, rootFolderName)
 	}
 
 	//Connect newly created root folder to repository
@@ -110,6 +202,22 @@ func CreateInitData(db *gorm.DB) {
 				PropertyDefinitionID: propDefFolderParentID.ID,
 				Value:                fmt.Sprint(rootFolder.ID),
 			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderBaseTypeID.ID,
+				Value:                typeDefFolder.Name,
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderObjectTypeID.ID,
+				Value:                typeDefFolder.Name,
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderCreatedBy.ID,
+				Value:                "default",
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderLastModifiedBy.ID,
+				Value:                "default",
+			},
 		},
 		Parents: []*model.CmisObject{
 			rootFolder,
@@ -119,6 +227,15 @@ func CreateInitData(db *gorm.DB) {
 		fmt.Println(err)
 	} else {
 		log.Printf("A folder named \"%s\" is created under the folder \"%s\"", folderAName, rootFolderName)
+	}
+	// Append CmisObjectID property after creating the object, as ID is dynamically generated
+	if err := db.Model(&folderA).Association("Properties").Append(&model.CmisProperty{
+		PropertyDefinitionID: propDefFolderObjectID.ID,
+		Value:                fmt.Sprint(folderA.ID),
+	}).Error; err != nil {
+		fmt.Println(err)
+	} else {
+		log.Printf("CmisObjectID \"%d\" is updated to object with name \"%s\"", folderA.ID, folderAName)
 	}
 
 	documentAName := "Customer Feedback.xlsx"
@@ -134,6 +251,22 @@ func CreateInitData(db *gorm.DB) {
 				PropertyDefinitionID: propDefDocumentParentID.ID,
 				Value:                fmt.Sprint(rootFolder.ID),
 			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefDocumentBaseTypeID.ID,
+				Value:                typeDefDocument.Name,
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefDocumentObjectTypeID.ID,
+				Value:                typeDefDocument.Name,
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefDocumentCreatedBy.ID,
+				Value:                "default",
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefDocumentLastModifiedBy.ID,
+				Value:                "default",
+			},
 		},
 		Parents: []*model.CmisObject{
 			rootFolder,
@@ -143,6 +276,15 @@ func CreateInitData(db *gorm.DB) {
 		fmt.Println(err)
 	} else {
 		log.Printf("A document named \"%s\" is created under the folder \"%s\"", documentAName, rootFolderName)
+	}
+	// Append CmisObjectID property after creating the object, as ID is dynamically generated
+	if err := db.Model(&documentA).Association("Properties").Append(&model.CmisProperty{
+		PropertyDefinitionID: propDefDocumentObjectID.ID,
+		Value:                fmt.Sprint(documentA.ID),
+	}).Error; err != nil {
+		fmt.Println(err)
+	} else {
+		log.Printf("CmisObjectID \"%d\" is updated to object with name \"%s\"", documentA.ID, documentAName)
 	}
 
 	log.Println("Data population complete")

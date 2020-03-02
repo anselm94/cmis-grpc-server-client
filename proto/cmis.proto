@@ -20,9 +20,9 @@ message TypeDefinition {
 }
 
 message PropertyDefinition {
-  string name = 1;
-  string description = 2;
-  string datatype = 3;
+  string name = 2;
+  string description = 3;
+  string datatype = 4;
 }
 
 message CmisObject {

@@ -117,3 +117,65 @@ type TypeChildren struct {
 	HasMoreItems bool              `json:"hasMoreItems"`
 	NumItems     int               `json:"numItems"`
 }
+
+type AllowableActions struct {
+	CanDeleteObject           bool `json:"canDeleteObject"`
+	CanUpdateProperties       bool `json:"canUpdateProperties"`
+	CanGetFolderTree          bool `json:"canGetFolderTree"`
+	CanGetProperties          bool `json:"canGetProperties"`
+	CanGetObjectRelationships bool `json:"canGetObjectRelationships"`
+	CanGetObjectParents       bool `json:"canGetObjectParents"`
+	CanGetFolderParent        bool `json:"canGetFolderParent"`
+	CanGetDescendants         bool `json:"canGetDescendants"`
+	CanMoveObject             bool `json:"canMoveObject"`
+	CanDeleteContentStream    bool `json:"canDeleteContentStream"`
+	CanCheckOut               bool `json:"canCheckOut"`
+	CanCancelCheckOut         bool `json:"canCancelCheckOut"`
+	CanCheckIn                bool `json:"canCheckIn"`
+	CanSetContentStream       bool `json:"canSetContentStream"`
+	CanGetAllVersions         bool `json:"canGetAllVersions"`
+	CanAddObjectToFolder      bool `json:"canAddObjectToFolder"`
+	CanRemoveObjectFromFolder bool `json:"canRemoveObjectFromFolder"`
+	CanGetContentStream       bool `json:"canGetContentStream"`
+	CanApplyPolicy            bool `json:"canApplyPolicy"`
+	CanGetAppliedPolicies     bool `json:"canGetAppliedPolicies"`
+	CanRemovePolicy           bool `json:"canRemovePolicy"`
+	CanGetChildren            bool `json:"canGetChildren"`
+	CanCreateDocument         bool `json:"canCreateDocument"`
+	CanCreateFolder           bool `json:"canCreateFolder"`
+	CanCreateRelationship     bool `json:"canCreateRelationship"`
+	CanCreateItem             bool `json:"canCreateItem"`
+	CanDeleteTree             bool `json:"canDeleteTree"`
+	CanGetRenditions          bool `json:"canGetRenditions"`
+	CanGetACL                 bool `json:"canGetACL"`
+	CanApplyACL               bool `json:"canApplyACL"`
+}
+
+type ACL struct {
+	ACEs []*ACE `json:"aces"`
+}
+
+type Principal struct {
+	PrincipalID string `json:"principal"`
+}
+
+type ACE struct {
+	Principal   *Principal `json:"principal"`
+	Permissions []string   `json:"permissions"`
+	IsDirect    bool       `json:"isDirect"`
+}
+
+type CmisProperty struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Cardinality string `json:"cardinality"`
+	Value       string `json:"value"`
+}
+
+type CmisObject struct {
+	Properties         *[]*CmisProperty  `json:"properties"`
+	SuccinctProperties map[string]string `json:"succinctProperties"`
+	AllowableActions   *AllowableActions `json:"allowableActions"`
+	ACL                *ACL              `json:"acl"`
+	ExactACL           *bool             `json:"exactACL"`
+}
