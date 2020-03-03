@@ -77,24 +77,24 @@ type RepositoryExtendedFeature struct {
 // ******** Types ********
 
 type TypeDefinition struct {
-	ID                       string                `json:"id"`
-	LocalName                string                `json:"localName"`
-	LocalNamespace           string                `json:"localNamespace"`
-	DisplayName              string                `json:"displayName"`
-	QueryName                string                `json:"queryName"`
-	Description              string                `json:"description"`
-	BaseID                   string                `json:"baseId"`
-	Creatable                bool                  `json:"creatable"`
-	Fileable                 bool                  `json:"fileable"`
-	Queryable                bool                  `json:"queryable"`
-	FulltextIndexed          bool                  `json:"fulltextIndexed"`
-	IncludedInSupertypeQuery bool                  `json:"includedInSupertypeQuery"`
-	ControllablePolicy       bool                  `json:"controllablePolicy"`
-	ControllableACL          bool                  `json:"controllableACL"`
-	TypeMutability           map[string]bool       `json:"typeMutability"`
-	Versionable              bool                  `json:"versionable"`
-	ContentStreamAllowed     string                `json:"contentStreamAllowed"`
-	PropertyDefinitions      []*PropertyDefinition `json:"propertyDefinitions"`
+	ID                       string                         `json:"id"`
+	LocalName                string                         `json:"localName"`
+	LocalNamespace           string                         `json:"localNamespace"`
+	DisplayName              string                         `json:"displayName"`
+	QueryName                string                         `json:"queryName"`
+	Description              string                         `json:"description"`
+	BaseID                   string                         `json:"baseId"`
+	Creatable                bool                           `json:"creatable"`
+	Fileable                 bool                           `json:"fileable"`
+	Queryable                bool                           `json:"queryable"`
+	FulltextIndexed          bool                           `json:"fulltextIndexed"`
+	IncludedInSupertypeQuery bool                           `json:"includedInSupertypeQuery"`
+	ControllablePolicy       bool                           `json:"controllablePolicy"`
+	ControllableACL          bool                           `json:"controllableACL"`
+	TypeMutability           map[string]bool                `json:"typeMutability"`
+	Versionable              bool                           `json:"versionable"`
+	ContentStreamAllowed     string                         `json:"contentStreamAllowed"`
+	PropertyDefinitions      map[string]*PropertyDefinition `json:"propertyDefinitions"`
 }
 
 type PropertyDefinition struct {
@@ -116,6 +116,10 @@ type TypeChildren struct {
 	Types        []*TypeDefinition `json:"types"`
 	HasMoreItems bool              `json:"hasMoreItems"`
 	NumItems     int               `json:"numItems"`
+}
+
+type TypeDescendant struct {
+	Type *TypeDefinition `json:"type"`
 }
 
 type AllowableActions struct {
@@ -166,16 +170,26 @@ type ACE struct {
 }
 
 type CmisProperty struct {
-	ID          string `json:"id"`
-	Type        string `json:"type"`
-	Cardinality string `json:"cardinality"`
-	Value       string `json:"value"`
+	ID          string      `json:"id"`
+	Type        string      `json:"type"`
+	Cardinality string      `json:"cardinality"`
+	Value       interface{} `json:"value"`
 }
 
 type CmisObject struct {
-	Properties         *[]*CmisProperty  `json:"properties"`
-	SuccinctProperties map[string]string `json:"succinctProperties"`
-	AllowableActions   *AllowableActions `json:"allowableActions"`
-	ACL                *ACL              `json:"acl"`
-	ExactACL           *bool             `json:"exactACL"`
+	Properties         *[]*CmisProperty       `json:"properties,omitempty"`
+	SuccinctProperties map[string]interface{} `json:"succinctProperties,omitempty"`
+	AllowableActions   *AllowableActions      `json:"allowableActions"`
+	ACL                *ACL                   `json:"acl"`
+	ExactACL           *bool                  `json:"exactACL"`
+}
+
+type CmisObjectChild struct {
+	Object *CmisObject `json:"object"`
+}
+
+type CmisChildren struct {
+	Objects      []*CmisObjectChild `json:"object"`
+	HasMoreItems bool               `json:"hasMoreItems"`
+	NumItems     int                `json:"numItems"`
 }

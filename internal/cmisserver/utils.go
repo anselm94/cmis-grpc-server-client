@@ -5,6 +5,7 @@ import (
 	cmismodel "docserverclient/internal/cmisserver/model"
 	cmisproto "docserverclient/proto"
 	"fmt"
+	"strconv"
 )
 
 var config *docserverclient.Config = docserverclient.NewDefaultConfig()
@@ -114,19 +115,19 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 		cmisTypeDefinition.ContentStreamAllowed = "allowed"
 	}
 	if includePropertyDefinitions {
-		propertyDefinitions := make([]*cmismodel.PropertyDefinition, len(typedefinition.PropertyDefinitions))
-		for indexIn, propertydefinition := range typedefinition.PropertyDefinitions {
-			propertyDefinitions[indexIn] = &cmismodel.PropertyDefinition{
+		propertyDefinitions := make(map[string]*cmismodel.PropertyDefinition, len(typedefinition.PropertyDefinitions))
+		for _, propertydefinition := range typedefinition.PropertyDefinitions {
+			propertyDefinitions[propertydefinition.Name] = &cmismodel.PropertyDefinition{
 				ID:            propertydefinition.Name,
-				LocalName:     propertydefinition.Description,
+				LocalName:     propertydefinition.Name,
 				DisplayName:   propertydefinition.Description,
 				QueryName:     propertydefinition.Name,
 				Description:   propertydefinition.Description,
 				PropertyType:  propertydefinition.Datatype,
 				Cardinality:   "single",
-				Updateability: "read",
+				Updateability: "readonly",
 				Inherited:     false,
-				Required:      true,
+				Required:      propertydefinition.Name == "cmis:name" || propertydefinition.Name == "cmis:objectTypeId",
 				Queryable:     false,
 				Orderable:     false,
 			}
@@ -139,18 +140,31 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) *cmismodel.CmisObject {
 	cmisObject := cmismodel.CmisObject{}
 	if isSuccinctProperties {
-		cmisObject.SuccinctProperties = make(map[string]string)
+		cmisObject.SuccinctProperties = make(map[string]interface{})
 		for _, cmisproperty := range cmisobject.Properties {
-			cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = cmisproperty.Value
+			cmisValue := &cmisproperty.Value
+			cmisPropertyDataType := cmisproperty.PropertyDefinition.Datatype
+			if cmisproperty.Value == "" {
+				cmisValue = nil
+			}
+			if cmisPropertyDataType == "datetime" || cmisPropertyDataType == "integer" {
+				cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name], _ = strconv.Atoi(*cmisValue)
+			} else {
+				cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = cmisValue
+			}
 		}
 	} else {
 		cmisObjectProperties := make([]*cmismodel.CmisProperty, len(cmisobject.Properties))
 		for index, cmisproperty := range cmisobject.Properties {
+			cmisValue := &cmisproperty.Value
+			if cmisproperty.Value == "" {
+				cmisValue = nil
+			}
 			cmisObjectProperties[index] = &cmismodel.CmisProperty{
 				ID:          cmisproperty.PropertyDefinition.Name,
 				Type:        cmisproperty.PropertyDefinition.Datatype,
 				Cardinality: "single",
-				Value:       cmisproperty.Value,
+				Value:       cmisValue,
 			}
 		}
 		cmisObject.Properties = &cmisObjectProperties

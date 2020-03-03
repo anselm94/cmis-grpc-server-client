@@ -36,7 +36,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/browser", browserRepositoryInfos)
 	router.HandleFunc("/browser/{repositoryID}", browserRepository)
-	router.HandleFunc("/browser/{repositoryID}/{objectID}", browserObject)
+	router.HandleFunc("/browser/{repositoryID}/{rootFolderID}", browserObject)
 	router.NotFoundHandler = http.HandlerFunc(browserNotFound)
 	log.Fatalf("Error running server -> %s", http.ListenAndServe(config.CmisAppPort, router))
 }
@@ -92,11 +92,15 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 	repositoryID, ok := vars["repositoryID"]
 	if ok {
 		cmisSelector := r.URL.Query().Get("cmisselector")
-		includePropertyDefinitions := r.URL.Query().Get("includePropertyDefinitions") == "true"
+		includePropertyDefinitions := r.URL.Query().Get("includePropertyDefinitions") != "false"
 		switch cmisSelector {
 		case "typeChildren":
 			typeChildren, _ := getTypeChildren(repositoryID, includePropertyDefinitions)
 			writeJSON(w, typeChildren)
+			return
+		case "typeDescendants":
+			typeDescendants, _ := getTypeDescendants(repositoryID, includePropertyDefinitions)
+			writeJSON(w, typeDescendants)
 			return
 		case "typeDefinition":
 			typeID, _ := url.QueryUnescape(r.URL.Query().Get("typeId"))
@@ -112,9 +116,9 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 }
 
 func browserObject(w http.ResponseWriter, r *http.Request) {
-	// vars := mux.Vars(r)
-	// repositoryID, _ := vars["repositoryID"]
-	// objectID, ok := vars["objectID"]
+	vars := mux.Vars(r)
+	repositoryID, _ := vars["repositoryID"]
+	// objectID, ok := vars["rootFolderID"]
 	ok := true
 	if ok {
 		cmisSelector := r.URL.Query().Get("cmisselector")
@@ -124,7 +128,7 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 		includeAllowableActions := r.URL.Query().Get("includeAllowableActions") == "true"
 		switch cmisSelector {
 		case "object":
-			cmisObject, _ := getObject("1", objectID, isSuccinctProperties, includeAllowableActions, includeACL)
+			cmisObject, _ := getObject(repositoryID, objectID, isSuccinctProperties, includeAllowableActions, includeACL)
 			writeJSON(w, cmisObject)
 			return
 		case "children":
@@ -165,6 +169,22 @@ func getTypeChildren(repositoryID string, includePropertyDefinitions bool) (*cmi
 		NumItems:     len(repo.TypeDefinitions),
 	}
 	return &typeChildren, nil
+}
+
+func getTypeDescendants(repositoryID string, includePropertyDefinitions bool) ([]*cmismodel.TypeDescendant, error) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	repo, err := cmisClient.GetRepository(ctxt, &empty.Empty{})
+	if err != nil {
+		return nil, err
+	}
+	typeDescendants := make([]*cmismodel.TypeDescendant, len(repo.TypeDefinitions))
+	for index, typeDefinitionProto := range repo.TypeDefinitions {
+		typeDescendants[index] = &cmismodel.TypeDescendant{
+			Type: cmisserver.ConvertTypeDefinitionProtoToCmis(typeDefinitionProto, includePropertyDefinitions),
+		}
+	}
+	return typeDescendants, nil
 }
 
 func getTypeDefinition(repositoryID string, typeID string, includePropertyDefinitions bool) (*cmismodel.TypeDefinition, error) {

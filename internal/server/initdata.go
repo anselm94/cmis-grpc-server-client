@@ -4,6 +4,8 @@ import (
 	"docserverclient/internal/server/model"
 	"fmt"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/jinzhu/gorm"
 )
@@ -23,22 +25,22 @@ func CreateInitData(db *gorm.DB) {
 	propDefFolderParentID := model.PropertyDefinition{
 		Name:        "cmis:parentId",
 		Description: "Parent ID",
-		Type:        "integer",
+		Type:        "id",
 	}
 	propDefFolderObjectID := model.PropertyDefinition{
 		Name:        "cmis:objectId",
 		Description: "Object ID",
-		Type:        "string",
+		Type:        "id",
 	}
 	propDefFolderBaseTypeID := model.PropertyDefinition{
 		Name:        "cmis:baseTypeId",
 		Description: "Base Type ID",
-		Type:        "integer",
+		Type:        "id",
 	}
 	propDefFolderObjectTypeID := model.PropertyDefinition{
 		Name:        "cmis:objectTypeId",
 		Description: "Object Type ID",
-		Type:        "string",
+		Type:        "id",
 	}
 	propDefFolderCreatedBy := model.PropertyDefinition{
 		Name:        "cmis:createdBy",
@@ -50,6 +52,16 @@ func CreateInitData(db *gorm.DB) {
 		Description: "Last Modified By",
 		Type:        "string",
 	}
+	propDefFolderCreationDate := model.PropertyDefinition{
+		Name:        "cmis:creationDate",
+		Description: "Creation Date",
+		Type:        "datetime",
+	}
+	propDefFolderLastModificationDate := model.PropertyDefinition{
+		Name:        "cmis:lastModificationDate",
+		Description: "Last Modification Date",
+		Type:        "datetime",
+	}
 
 	// Property Definitions for Documents
 	propDefDocumentName := model.PropertyDefinition{
@@ -60,22 +72,22 @@ func CreateInitData(db *gorm.DB) {
 	propDefDocumentParentID := model.PropertyDefinition{
 		Name:        "cmis:parentId",
 		Description: "Parent ID",
-		Type:        "integer",
+		Type:        "id",
 	}
 	propDefDocumentObjectID := model.PropertyDefinition{
 		Name:        "cmis:objectId",
 		Description: "Object ID",
-		Type:        "string",
+		Type:        "id",
 	}
 	propDefDocumentBaseTypeID := model.PropertyDefinition{
 		Name:        "cmis:baseTypeId",
 		Description: "Base Type ID",
-		Type:        "integer",
+		Type:        "id",
 	}
 	propDefDocumentObjectTypeID := model.PropertyDefinition{
 		Name:        "cmis:objectTypeId",
 		Description: "Object Type ID",
-		Type:        "string",
+		Type:        "id",
 	}
 	propDefDocumentCreatedBy := model.PropertyDefinition{
 		Name:        "cmis:createdBy",
@@ -86,6 +98,16 @@ func CreateInitData(db *gorm.DB) {
 		Name:        "cmis:lastModifiedBy",
 		Description: "Last Modified By",
 		Type:        "string",
+	}
+	propDefDocumentCreationDate := model.PropertyDefinition{
+		Name:        "cmis:creationDate",
+		Description: "Creation Date",
+		Type:        "datetime",
+	}
+	propDefDocumentLastModificationDate := model.PropertyDefinition{
+		Name:        "cmis:lastModificationDate",
+		Description: "Last Modification Date",
+		Type:        "datetime",
 	}
 
 	// Type Definitions
@@ -100,6 +122,8 @@ func CreateInitData(db *gorm.DB) {
 			&propDefFolderObjectTypeID,
 			&propDefFolderCreatedBy,
 			&propDefFolderLastModifiedBy,
+			&propDefFolderCreationDate,
+			&propDefFolderLastModificationDate,
 		},
 	}
 	typeDefDocument := &model.TypeDefinition{
@@ -113,6 +137,8 @@ func CreateInitData(db *gorm.DB) {
 			&propDefDocumentObjectTypeID,
 			&propDefDocumentCreatedBy,
 			&propDefDocumentLastModifiedBy,
+			&propDefDocumentCreationDate,
+			&propDefDocumentLastModificationDate,
 		},
 	}
 
@@ -163,6 +189,14 @@ func CreateInitData(db *gorm.DB) {
 			&model.CmisProperty{
 				PropertyDefinitionID: propDefFolderLastModifiedBy.ID,
 				Value:                "default",
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderCreationDate.ID,
+				Value:                strconv.Itoa(int(time.Now().Unix())),
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderLastModificationDate.ID,
+				Value:                strconv.Itoa(int(time.Now().Unix())),
 			},
 		},
 	}
@@ -218,6 +252,14 @@ func CreateInitData(db *gorm.DB) {
 				PropertyDefinitionID: propDefFolderLastModifiedBy.ID,
 				Value:                "default",
 			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderCreationDate.ID,
+				Value:                strconv.Itoa(int(time.Now().Unix())),
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderLastModificationDate.ID,
+				Value:                strconv.Itoa(int(time.Now().Unix())),
+			},
 		},
 		Parents: []*model.CmisObject{
 			rootFolder,
@@ -266,6 +308,14 @@ func CreateInitData(db *gorm.DB) {
 			&model.CmisProperty{
 				PropertyDefinitionID: propDefDocumentLastModifiedBy.ID,
 				Value:                "default",
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefDocumentCreationDate.ID,
+				Value:                strconv.Itoa(int(time.Now().Unix())),
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefDocumentLastModificationDate.ID,
+				Value:                strconv.Itoa(int(time.Now().Unix())),
 			},
 		},
 		Parents: []*model.CmisObject{
