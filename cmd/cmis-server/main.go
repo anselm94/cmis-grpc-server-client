@@ -123,7 +123,7 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		cmisSelector := r.URL.Query().Get("cmisselector")
 		objectID, _ := url.QueryUnescape(r.URL.Query().Get("objectId"))
-		isSuccinctProperties := r.URL.Query().Get("succinct") == "true"
+		isSuccinctProperties := r.URL.Query().Get("succinct") != "false"
 		includeACL := r.URL.Query().Get("includeACL") == "true"
 		includeAllowableActions := r.URL.Query().Get("includeAllowableActions") == "true"
 		switch cmisSelector {
@@ -132,7 +132,16 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, cmisObject)
 			return
 		case "children":
-			writeError(w, "Object ID not found")
+			cmisChildren, _ := getChildren(repositoryID, objectID, isSuccinctProperties, includeAllowableActions, includeACL)
+			writeJSON(w, cmisChildren)
+			return
+		case "parents":
+			cmisObjectParents, _ := getParentObjects(repositoryID, objectID, isSuccinctProperties, includeAllowableActions, includeACL)
+			writeJSON(w, cmisObjectParents)
+			return
+		case "parent":
+			cmisObjectParent, _ := getParentObject(repositoryID, objectID, isSuccinctProperties, includeAllowableActions, includeACL)
+			writeJSON(w, cmisObjectParent)
 			return
 		default:
 			writeNotFound(w, "Object not found")
@@ -212,4 +221,37 @@ func getObject(repositoryID string, objectID string, isSuccinctProperties bool, 
 		return nil, err
 	}
 	return cmisserver.ConvertCmisObjectProtoToCmis(cmisObjectProto, isSuccinctProperties, includeAllowableActions, includeACL), nil
+}
+
+func getChildren(repositoryID string, objectID string, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) (*cmismodel.CmisChildren, error) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmisObjectID, _ := strconv.Atoi(objectID)
+	cmisObjectProto, err := cmisClient.GetObject(ctxt, &cmisproto.CmisObjectId{Id: int32(cmisObjectID)})
+	if err != nil {
+		return nil, err
+	}
+	return cmisserver.ConvertCmisChildrenProtoToCmis(cmisObjectProto.Children, isSuccinctProperties, includeAllowableActions, includeACL), nil
+}
+
+func getParentObject(repositoryID string, objectID string, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) (*cmismodel.CmisObject, error) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmisObjectID, _ := strconv.Atoi(objectID)
+	cmisObjectProto, err := cmisClient.GetObject(ctxt, &cmisproto.CmisObjectId{Id: int32(cmisObjectID)})
+	if err != nil {
+		return nil, err
+	}
+	return cmisserver.ConvertCmisObjectProtoToCmis(cmisObjectProto.Parents[0], isSuccinctProperties, includeAllowableActions, includeACL), nil
+}
+
+func getParentObjects(repositoryID string, objectID string, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) ([]*cmismodel.CmisObjectRelated, error) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmisObjectID, _ := strconv.Atoi(objectID)
+	cmisObjectProto, err := cmisClient.GetObject(ctxt, &cmisproto.CmisObjectId{Id: int32(cmisObjectID)})
+	if err != nil {
+		return nil, err
+	}
+	return cmisserver.ConvertCmisParentProtoToCmis(cmisObjectProto.Parents, isSuccinctProperties, includeAllowableActions, includeACL), nil
 }

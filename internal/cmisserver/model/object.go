@@ -184,12 +184,12 @@ type CmisObject struct {
 	ExactACL           *bool                  `json:"exactACL"`
 }
 
-type CmisObjectChild struct {
+type CmisObjectRelated struct {
 	Object *CmisObject `json:"object"`
 }
 
 type CmisChildren struct {
-	Objects      []*CmisObjectChild `json:"object"`
-	HasMoreItems bool               `json:"hasMoreItems"`
-	NumItems     int                `json:"numItems"`
+	Objects      []*CmisObjectRelated `json:"objects"`
+	HasMoreItems bool                 `json:"hasMoreItems"`
+	NumItems     int                  `json:"numItems"`
 }

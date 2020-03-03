@@ -134,7 +134,7 @@ func (c *Cmis) getObject(cmisObjectID *cmisproto.CmisObjectId) (*cmisproto.CmisO
 		log.Print(err)
 		return nil, err
 	}
-	if err := c.DB.Preload("Parents").Preload("Children").Preload("Children.TypeDefinition").Preload("Children.Properties").Preload("Children.Properties.PropertyDefinition").Find(&cmisObject).Error; err != nil {
+	if err := c.DB.Preload("Parents").Preload("Parents.Properties").Preload("Parents.Properties.PropertyDefinition").Preload("Children").Preload("Children.TypeDefinition").Preload("Children.Properties").Preload("Children.Properties.PropertyDefinition").Find(&cmisObject).Error; err != nil {
 		log.Print(err)
 		return nil, err
 	}

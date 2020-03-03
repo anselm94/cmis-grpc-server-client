@@ -176,8 +176,8 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 			CanGetFolderTree:          false,
 			CanGetProperties:          true,
 			CanGetObjectRelationships: false,
-			CanGetObjectParents:       false,
-			CanGetFolderParent:        false,
+			CanGetObjectParents:       true,
+			CanGetFolderParent:        true,
 			CanGetDescendants:         false,
 			CanMoveObject:             false,
 			CanDeleteContentStream:    false,
@@ -186,8 +186,8 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 			CanCheckIn:                false,
 			CanSetContentStream:       false,
 			CanGetAllVersions:         false,
-			CanAddObjectToFolder:      true,
-			CanRemoveObjectFromFolder: true,
+			CanAddObjectToFolder:      false,
+			CanRemoveObjectFromFolder: false,
 			CanGetContentStream:       false,
 			CanApplyPolicy:            false,
 			CanGetAppliedPolicies:     false,
@@ -221,4 +221,31 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 		cmisObject.ExactACL = &isExactACL
 	}
 	return &cmisObject
+}
+
+func ConvertCmisChildrenProtoToCmis(cmisChildrenProto []*cmisproto.CmisObject, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) *cmismodel.CmisChildren {
+	cmisChildObjects := make([]*cmismodel.CmisObjectRelated, len(cmisChildrenProto))
+	for index, cmisObjectProto := range cmisChildrenProto {
+		cmisObject := ConvertCmisObjectProtoToCmis(cmisObjectProto, isSuccinctProperties, includeAllowableActions, includeACL)
+		cmisChildObjects[index] = &cmismodel.CmisObjectRelated{
+			Object: cmisObject,
+		}
+	}
+	cmisChildren := cmismodel.CmisChildren{
+		Objects:      cmisChildObjects,
+		HasMoreItems: false,
+		NumItems:     len(cmisChildObjects),
+	}
+	return &cmisChildren
+}
+
+func ConvertCmisParentProtoToCmis(cmisChildrenProto []*cmisproto.CmisObject, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) []*cmismodel.CmisObjectRelated {
+	cmisParentObjects := make([]*cmismodel.CmisObjectRelated, len(cmisChildrenProto))
+	for index, cmisObjectProto := range cmisChildrenProto {
+		cmisObject := ConvertCmisObjectProtoToCmis(cmisObjectProto, isSuccinctProperties, includeAllowableActions, includeACL)
+		cmisParentObjects[index] = &cmismodel.CmisObjectRelated{
+			Object: cmisObject,
+		}
+	}
+	return cmisParentObjects
 }

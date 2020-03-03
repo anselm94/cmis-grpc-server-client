@@ -62,6 +62,11 @@ func CreateInitData(db *gorm.DB) {
 		Description: "Last Modification Date",
 		Type:        "datetime",
 	}
+	propDefFolderPath := model.PropertyDefinition{
+		Name:        "cmis:path",
+		Description: "Path",
+		Type:        "string",
+	}
 
 	// Property Definitions for Documents
 	propDefDocumentName := model.PropertyDefinition{
@@ -109,6 +114,11 @@ func CreateInitData(db *gorm.DB) {
 		Description: "Last Modification Date",
 		Type:        "datetime",
 	}
+	propDefDocumentPath := model.PropertyDefinition{
+		Name:        "cmis:path",
+		Description: "Path",
+		Type:        "string",
+	}
 
 	// Type Definitions
 	typeDefFolder := &model.TypeDefinition{
@@ -124,6 +134,7 @@ func CreateInitData(db *gorm.DB) {
 			&propDefFolderLastModifiedBy,
 			&propDefFolderCreationDate,
 			&propDefFolderLastModificationDate,
+			&propDefFolderPath,
 		},
 	}
 	typeDefDocument := &model.TypeDefinition{
@@ -139,6 +150,7 @@ func CreateInitData(db *gorm.DB) {
 			&propDefDocumentLastModifiedBy,
 			&propDefDocumentCreationDate,
 			&propDefDocumentLastModificationDate,
+			&propDefDocumentPath,
 		},
 	}
 
@@ -197,6 +209,10 @@ func CreateInitData(db *gorm.DB) {
 			&model.CmisProperty{
 				PropertyDefinitionID: propDefFolderLastModificationDate.ID,
 				Value:                strconv.Itoa(int(time.Now().Unix())),
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderPath.ID,
+				Value:                "/",
 			},
 		},
 	}
@@ -260,6 +276,10 @@ func CreateInitData(db *gorm.DB) {
 				PropertyDefinitionID: propDefFolderLastModificationDate.ID,
 				Value:                strconv.Itoa(int(time.Now().Unix())),
 			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefFolderPath.ID,
+				Value:                "/My Documents",
+			},
 		},
 		Parents: []*model.CmisObject{
 			rootFolder,
@@ -316,6 +336,10 @@ func CreateInitData(db *gorm.DB) {
 			&model.CmisProperty{
 				PropertyDefinitionID: propDefDocumentLastModificationDate.ID,
 				Value:                strconv.Itoa(int(time.Now().Unix())),
+			},
+			&model.CmisProperty{
+				PropertyDefinitionID: propDefDocumentPath.ID,
+				Value:                "/My Documents",
 			},
 		},
 		Parents: []*model.CmisObject{
