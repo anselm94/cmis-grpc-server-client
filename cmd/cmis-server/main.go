@@ -36,7 +36,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/browser", browserRepositoryInfos)
 	router.HandleFunc("/browser/{repositoryID}", browserRepository)
-	router.HandleFunc("/browser/{repositoryID}/{rootFolderID}", browserObject)
+	router.HandleFunc("/browser/{repositoryID}/root", browserObject)
 	router.NotFoundHandler = http.HandlerFunc(browserNotFound)
 	log.Fatalf("Error running server -> %s", http.ListenAndServe(config.CmisAppPort, router))
 }
@@ -119,7 +119,6 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 func browserObject(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	repositoryID, _ := vars["repositoryID"]
-	// objectID, ok := vars["rootFolderID"]
 	ok := true
 	if ok {
 		cmisSelector := r.URL.Query().Get("cmisselector")

@@ -72,7 +72,7 @@ func ConvertRepositoryProtoToCmis(repositoryProto *cmisproto.Repository) *cmismo
 		ChangesOnType:        []string{},
 		ExtendedFeatures:     []*cmismodel.RepositoryExtendedFeature{},
 		RepositoryURL:        "http://" + config.CmisAppHost + config.CmisAppPort + "/browser/" + fmt.Sprint(repositoryProto.Id),
-		RootFolderURL:        "http://" + config.CmisAppHost + config.CmisAppPort + "/browser/" + fmt.Sprint(repositoryProto.Id) + "/" + fmt.Sprint(repositoryProto.RootFolder.Id.Id),
+		RootFolderURL:        "http://" + config.CmisAppHost + config.CmisAppPort + "/browser/" + fmt.Sprint(repositoryProto.Id) + "/root",
 	}
 	return &cmisRepository
 }
@@ -117,7 +117,7 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 	if includePropertyDefinitions {
 		propertyDefinitions := make(map[string]*cmismodel.PropertyDefinition, len(typedefinition.PropertyDefinitions))
 		for _, propertydefinition := range typedefinition.PropertyDefinitions {
-			propertyDefinitions[propertydefinition.Name] = &cmismodel.PropertyDefinition{
+			cmisPropertyDefinition := &cmismodel.PropertyDefinition{
 				ID:            propertydefinition.Name,
 				LocalName:     propertydefinition.Description,
 				DisplayName:   propertydefinition.Description,
@@ -131,6 +131,13 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 				Queryable:     false,
 				Orderable:     false,
 			}
+			switch propertydefinition.Name {
+			case "cmis:objectTypeId":
+				cmisPropertyDefinition.Updateability = "oncreate"
+			case "cmis:name":
+				cmisPropertyDefinition.Updateability = "oncreate"
+			}
+			propertyDefinitions[propertydefinition.Name] = cmisPropertyDefinition
 		}
 		cmisTypeDefinition.PropertyDefinitions = propertyDefinitions
 	}
