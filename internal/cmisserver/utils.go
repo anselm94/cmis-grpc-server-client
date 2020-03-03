@@ -89,15 +89,15 @@ func ConvertTypeDefinitionsProtoToCmis(typedefinitions []*cmisproto.TypeDefiniti
 func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, includePropertyDefinitions bool) *cmismodel.TypeDefinition {
 	cmisTypeDefinition := cmismodel.TypeDefinition{
 		ID:                       typedefinition.Name,
-		LocalName:                typedefinition.Name,
+		LocalName:                typedefinition.Description,
 		LocalNamespace:           "grpc-cmis",
-		DisplayName:              typedefinition.Name,
+		DisplayName:              typedefinition.Description,
 		QueryName:                typedefinition.Name,
-		Description:              typedefinition.Name,
+		Description:              typedefinition.Description,
 		BaseID:                   typedefinition.Name,
-		Creatable:                false,
-		Fileable:                 false,
-		Queryable:                false,
+		Creatable:                true,
+		Fileable:                 true,
+		Queryable:                true,
 		FulltextIndexed:          false,
 		IncludedInSupertypeQuery: false,
 		ControllablePolicy:       false,
@@ -107,19 +107,19 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 			"update": false,
 			"delete": false,
 		},
-		Versionable:          false,
-		ContentStreamAllowed: "notallowed",
 	}
 	if typedefinition.Name == "cmis:document" {
-		cmisTypeDefinition.Fileable = true
-		cmisTypeDefinition.ContentStreamAllowed = "allowed"
+		versionable := false
+		contentStreamAllowed := "notallowed"
+		cmisTypeDefinition.Versionable = &versionable
+		cmisTypeDefinition.ContentStreamAllowed = &contentStreamAllowed
 	}
 	if includePropertyDefinitions {
 		propertyDefinitions := make(map[string]*cmismodel.PropertyDefinition, len(typedefinition.PropertyDefinitions))
 		for _, propertydefinition := range typedefinition.PropertyDefinitions {
 			propertyDefinitions[propertydefinition.Name] = &cmismodel.PropertyDefinition{
 				ID:            propertydefinition.Name,
-				LocalName:     propertydefinition.Name,
+				LocalName:     propertydefinition.Description,
 				DisplayName:   propertydefinition.Description,
 				QueryName:     propertydefinition.Name,
 				Description:   propertydefinition.Description,

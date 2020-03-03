@@ -99,7 +99,8 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, typeChildren)
 			return
 		case "typeDescendants":
-			typeDescendants, _ := getTypeDescendants(repositoryID, includePropertyDefinitions)
+			typeID, _ := url.QueryUnescape(r.URL.Query().Get("typeId"))
+			typeDescendants, _ := getTypeDescendants(repositoryID, typeID, includePropertyDefinitions)
 			writeJSON(w, typeDescendants)
 			return
 		case "typeDefinition":
@@ -180,19 +181,23 @@ func getTypeChildren(repositoryID string, includePropertyDefinitions bool) (*cmi
 	return &typeChildren, nil
 }
 
-func getTypeDescendants(repositoryID string, includePropertyDefinitions bool) ([]*cmismodel.TypeDescendant, error) {
+func getTypeDescendants(repositoryID string, typeID string, includePropertyDefinitions bool) ([]*cmismodel.TypeDescendant, error) {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	repo, err := cmisClient.GetRepository(ctxt, &empty.Empty{})
 	if err != nil {
 		return nil, err
 	}
-	typeDescendants := make([]*cmismodel.TypeDescendant, len(repo.TypeDefinitions))
-	for index, typeDefinitionProto := range repo.TypeDefinitions {
-		typeDescendants[index] = &cmismodel.TypeDescendant{
-			Type: cmisserver.ConvertTypeDefinitionProtoToCmis(typeDefinitionProto, includePropertyDefinitions),
+	if typeID == "" {
+		typeDescendants := make([]*cmismodel.TypeDescendant, len(repo.TypeDefinitions))
+		for index, typeDefinitionProto := range repo.TypeDefinitions {
+			typeDescendants[index] = &cmismodel.TypeDescendant{
+				Type: cmisserver.ConvertTypeDefinitionProtoToCmis(typeDefinitionProto, includePropertyDefinitions),
+			}
 		}
+		return typeDescendants, nil
 	}
+	typeDescendants := make([]*cmismodel.TypeDescendant, 0)
 	return typeDescendants, nil
 }
 

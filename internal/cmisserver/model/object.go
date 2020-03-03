@@ -92,8 +92,8 @@ type TypeDefinition struct {
 	ControllablePolicy       bool                           `json:"controllablePolicy"`
 	ControllableACL          bool                           `json:"controllableACL"`
 	TypeMutability           map[string]bool                `json:"typeMutability"`
-	Versionable              bool                           `json:"versionable"`
-	ContentStreamAllowed     string                         `json:"contentStreamAllowed"`
+	Versionable              *bool                          `json:"versionable,omitempty"`
+	ContentStreamAllowed     *string                        `json:"contentStreamAllowed,omitempty"`
 	PropertyDefinitions      map[string]*PropertyDefinition `json:"propertyDefinitions"`
 }
 
