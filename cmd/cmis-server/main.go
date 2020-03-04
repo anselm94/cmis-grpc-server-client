@@ -42,6 +42,8 @@ func main() {
 	log.Fatalf("Error running server -> %s", http.ListenAndServe(config.CmisAppPort, router))
 }
 
+// ***** HTTP helpers *****
+
 func writeJSON(w http.ResponseWriter, data interface{}) {
 	jsonObject, err := json.Marshal(data)
 	if err != nil {
@@ -73,6 +75,8 @@ func writeNotFound(w http.ResponseWriter, err string) {
 	w.WriteHeader(http.StatusNotFound)
 	w.Write(jsonObject)
 }
+
+// ***** CMIS handlers *****
 
 func browserRepositoryInfos(w http.ResponseWriter, r *http.Request) {
 	repositoryIDs := []string{"1"}
@@ -183,6 +187,9 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 func browserNotFound(w http.ResponseWriter, r *http.Request) {
 	writeNotFound(w, "Not found")
 }
+
+// ***** CMIS helpers *****
+// These helpers indirectly maps to CMIS services
 
 func getRepository(repositoryID string) (*cmismodel.Repository, error) {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)

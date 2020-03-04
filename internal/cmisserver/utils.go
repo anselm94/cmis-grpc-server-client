@@ -10,12 +10,13 @@ import (
 
 var config *docserverclient.Config = docserverclient.NewDefaultConfig()
 
+// ConvertRepositoryProtoToCmis converts Repository information from Protobuf to CMIS model
 func ConvertRepositoryProtoToCmis(repositoryProto *cmisproto.Repository) *cmismodel.Repository {
 	cmisRepository := cmismodel.Repository{
 		RepositoryID:          fmt.Sprint(repositoryProto.Id),
 		RepositoryName:        repositoryProto.Name,
 		RepositoryDescription: repositoryProto.Description,
-		VendorName:            "SAP",
+		VendorName:            "SAP AG",
 		ProductName:           repositoryProto.Name,
 		ProductVersion:        "1.0",
 		RootFolderID:          fmt.Sprint(repositoryProto.RootFolder.Id.Id),
@@ -77,6 +78,7 @@ func ConvertRepositoryProtoToCmis(repositoryProto *cmisproto.Repository) *cmismo
 	return &cmisRepository
 }
 
+// ConvertTypeDefinitionsProtoToCmis converts TypeChildren from Protobuf to CMIS model
 func ConvertTypeDefinitionsProtoToCmis(typedefinitions []*cmisproto.TypeDefinition, includePropertyDefinitions bool) []*cmismodel.TypeDefinition {
 	cmisTypeDefinitions := make([]*cmismodel.TypeDefinition, len(typedefinitions))
 	for index, typedefinition := range typedefinitions {
@@ -86,6 +88,7 @@ func ConvertTypeDefinitionsProtoToCmis(typedefinitions []*cmisproto.TypeDefiniti
 	return cmisTypeDefinitions
 }
 
+// ConvertTypeDefinitionProtoToCmis converts a Type Definition from Protobuf to CMIS model
 func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, includePropertyDefinitions bool) *cmismodel.TypeDefinition {
 	cmisTypeDefinition := cmismodel.TypeDefinition{
 		ID:                       typedefinition.Name,
@@ -95,9 +98,9 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 		QueryName:                typedefinition.Name,
 		Description:              typedefinition.Description,
 		BaseID:                   typedefinition.Name,
-		Creatable:                true,
-		Fileable:                 true,
-		Queryable:                true,
+		Creatable:                true, // Document & Folder base typedefinition to have 'true' as per CMIS spec
+		Fileable:                 true, // Document & Folder base typedefinition to have 'true' as per CMIS spec
+		Queryable:                false,
 		FulltextIndexed:          false,
 		IncludedInSupertypeQuery: false,
 		ControllablePolicy:       false,
@@ -124,13 +127,15 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 				QueryName:     propertydefinition.Name,
 				Description:   propertydefinition.Description,
 				PropertyType:  propertydefinition.Datatype,
-				Cardinality:   "single",
-				Updateability: "readonly",
-				Inherited:     false,
-				Required:      propertydefinition.Name == "cmis:name" || propertydefinition.Name == "cmis:objectTypeId",
+				Cardinality:   "single",                                                                                 // Assumed to have single values
+				Updateability: "readonly",                                                                               // Default is 'readonly', for server to assume default values
+				Inherited:     false,                                                                                    // 'true' for descendant property definition
+				Required:      propertydefinition.Name == "cmis:name" || propertydefinition.Name == "cmis:objectTypeId", // as per CMIS spec
 				Queryable:     false,
 				Orderable:     false,
 			}
+			// While creating a folder/document, objectTypeId & name are the key-inputs,
+			// and other properties can be assumed to have default values
 			switch propertydefinition.Name {
 			case "cmis:objectTypeId":
 				cmisPropertyDefinition.Updateability = "oncreate"
@@ -144,6 +149,7 @@ func ConvertTypeDefinitionProtoToCmis(typedefinition *cmisproto.TypeDefinition, 
 	return &cmisTypeDefinition
 }
 
+// ConvertCmisObjectProtoToCmis converts CMIS Object from Protobuf to CMIS model
 func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) *cmismodel.CmisObject {
 	cmisObject := cmismodel.CmisObject{}
 	if isSuccinctProperties {
@@ -152,12 +158,13 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 			if cmisproperty.PropertyDefinition == nil {
 				continue
 			}
+			// by default, Metadata server stores value as string. Types of Property values are reconstructed during runtime
 			cmisPropertyDataType := cmisproperty.PropertyDefinition.Datatype
 			if cmisPropertyDataType == "datetime" || cmisPropertyDataType == "integer" {
 				cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name], _ = strconv.Atoi(cmisproperty.Value)
 			} else {
 				if cmisproperty.Value == "" {
-					cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = nil
+					cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = nil // empty string values are considered 'null'
 				} else {
 					cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = cmisproperty.Value
 				}
@@ -181,13 +188,13 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 	}
 	if includeAllowableActions {
 		cmisObject.AllowableActions = &cmismodel.AllowableActions{
-			CanDeleteObject:           true,
+			CanDeleteObject:           true, // allow delete
 			CanUpdateProperties:       false,
 			CanGetFolderTree:          false,
-			CanGetProperties:          true,
+			CanGetProperties:          false,
 			CanGetObjectRelationships: false,
-			CanGetObjectParents:       true,
-			CanGetFolderParent:        true,
+			CanGetObjectParents:       true, // allow multiple parents for multifiling
+			CanGetFolderParent:        true, // allow for upward navigation
 			CanGetDescendants:         false,
 			CanMoveObject:             false,
 			CanDeleteContentStream:    false,
@@ -202,14 +209,14 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 			CanApplyPolicy:            false,
 			CanGetAppliedPolicies:     false,
 			CanRemovePolicy:           false,
-			CanGetChildren:            true,
-			CanCreateDocument:         true,
-			CanCreateFolder:           true,
+			CanGetChildren:            true, // allow children
+			CanCreateDocument:         true, // allow creating a document
+			CanCreateFolder:           true, // allow creating a folder
 			CanCreateRelationship:     false,
 			CanCreateItem:             false,
 			CanDeleteTree:             false,
 			CanGetRenditions:          false,
-			CanGetACL:                 true,
+			CanGetACL:                 false,
 			CanApplyACL:               false,
 		}
 	}
@@ -233,6 +240,7 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 	return &cmisObject
 }
 
+// ConvertCmisChildrenProtoToCmis converts array of CMIS objects from Protobuf to CMIS model
 func ConvertCmisChildrenProtoToCmis(cmisChildrenProto []*cmisproto.CmisObject, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) *cmismodel.CmisChildren {
 	cmisChildObjects := make([]*cmismodel.CmisObjectRelated, len(cmisChildrenProto))
 	for index, cmisObjectProto := range cmisChildrenProto {
@@ -249,6 +257,7 @@ func ConvertCmisChildrenProtoToCmis(cmisChildrenProto []*cmisproto.CmisObject, i
 	return &cmisChildren
 }
 
+// ConvertCmisChildrenProtoToCmis converts an array of parent CMIS objects from Protobuf to CMIS model
 func ConvertCmisParentProtoToCmis(cmisChildrenProto []*cmisproto.CmisObject, isSuccinctProperties bool, includeAllowableActions bool, includeACL bool) []*cmismodel.CmisObjectRelated {
 	cmisParentObjects := make([]*cmismodel.CmisObjectRelated, len(cmisChildrenProto))
 	for index, cmisObjectProto := range cmisChildrenProto {

@@ -2,6 +2,7 @@ package cmismodel
 
 // Exception
 
+// CmisException holds all the CMIS exceptions
 type CmisException struct {
 	Message   string `json:"message"`
 	Exception string `json:"exception"`
@@ -9,6 +10,7 @@ type CmisException struct {
 
 // ******** Repository ********
 
+// Repository holds the CMIS Repository info
 type Repository struct {
 	RepositoryID          string                       `json:"repositoryId"`
 	RepositoryName        string                       `json:"repositoryName"`
@@ -29,6 +31,7 @@ type Repository struct {
 	RootFolderURL         string                       `json:"rootFolderUrl"`
 }
 
+// RepositoryCapabilities holds the capabilities of one CMIS Repository
 type RepositoryCapabilities struct {
 	CapabilityContentStreamUpdatability string              `json:"capabilityContentStreamUpdatability"`
 	CapabilityChanges                   string              `json:"capabilityChanges"`
@@ -49,6 +52,7 @@ type RepositoryCapabilities struct {
 	CapabilityNewTypeSettableAttributes map[string]bool     `json:"capabilityNewTypeSettableAttributes"`
 }
 
+// ACLCapabilities holds the list of ACLs & Permissions associated with it
 type ACLCapabilities struct {
 	SupportedPermissions string           `json:"supportedPermissions"`
 	Propagation          string           `json:"propagation"`
@@ -56,16 +60,19 @@ type ACLCapabilities struct {
 	PermissionMapping    []*PermissionMap `json:"permissionMapping"`
 }
 
+// Permission is a representation of CMIS Permission
 type Permission struct {
 	Permission  string `json:"permission"`
 	Description string `json:"description"`
 }
 
+// PermissionMap holds the map of permission and actions they can do
 type PermissionMap struct {
 	Key        string   `json:"key"`
 	Permission []string `json:"permission"`
 }
 
+// RepositoryExtendedFeature holds the extended feature not supported by CMIS natively
 type RepositoryExtendedFeature struct {
 	ID           string `json:"id"`
 	URL          string `json:"url"`
@@ -76,6 +83,7 @@ type RepositoryExtendedFeature struct {
 
 // ******** Types ********
 
+// TypeDefinition holds a CMIS Type Definition. A TypeDefinition can hold multiple PropertyDefinitions
 type TypeDefinition struct {
 	ID                       string                         `json:"id"`
 	LocalName                string                         `json:"localName"`
@@ -97,6 +105,7 @@ type TypeDefinition struct {
 	PropertyDefinitions      map[string]*PropertyDefinition `json:"propertyDefinitions"`
 }
 
+// PropertyDefinition holds a Property Definition
 type PropertyDefinition struct {
 	ID            string `json:"id"`
 	LocalName     string `json:"localName"`
@@ -112,16 +121,21 @@ type PropertyDefinition struct {
 	Orderable     bool   `json:"orderable"`
 }
 
+// TypeChildren is a representation of all Types for Browser binding
 type TypeChildren struct {
 	Types        []*TypeDefinition `json:"types"`
 	HasMoreItems bool              `json:"hasMoreItems"`
 	NumItems     int               `json:"numItems"`
 }
 
+// TypeDescendant is a representation of a TypeDefinition as a descendant
 type TypeDescendant struct {
 	Type *TypeDefinition `json:"type"`
 }
 
+// ******** Objects ********
+
+// AllowableActions holds all the actions allowable for a CMIS Object
 type AllowableActions struct {
 	CanDeleteObject           bool `json:"canDeleteObject"`
 	CanUpdateProperties       bool `json:"canUpdateProperties"`
@@ -155,20 +169,24 @@ type AllowableActions struct {
 	CanApplyACL               bool `json:"canApplyACL"`
 }
 
+// ACL is the Access Control List containing ACEs
 type ACL struct {
 	ACEs []*ACE `json:"aces"`
 }
 
+// Principal holds the Principal's ID, which can be direct/indirect
 type Principal struct {
 	PrincipalID string `json:"principal"`
 }
 
+// ACE is the CMIS Access Control Entry, defining what Permissions a Principal have
 type ACE struct {
 	Principal   *Principal `json:"principal"`
 	Permissions []string   `json:"permissions"`
 	IsDirect    bool       `json:"isDirect"`
 }
 
+// CmisProperty holds the representation for a CMIS Property
 type CmisProperty struct {
 	ID          string      `json:"id"`
 	Type        string      `json:"type"`
@@ -176,6 +194,7 @@ type CmisProperty struct {
 	Value       interface{} `json:"value"`
 }
 
+// CmisObject holds the representation for a CMIS Object
 type CmisObject struct {
 	Properties         *[]*CmisProperty       `json:"properties,omitempty"`
 	SuccinctProperties map[string]interface{} `json:"succinctProperties,omitempty"`
@@ -184,10 +203,12 @@ type CmisObject struct {
 	ExactACL           *bool                  `json:"exactACL"`
 }
 
+// CmisObjectRelated holds a CmisObject, as is required only for getChildren calls
 type CmisObjectRelated struct {
 	Object *CmisObject `json:"object"`
 }
 
+// CmisChildren holds the list of Child CmisObjects
 type CmisChildren struct {
 	Objects      []*CmisObjectRelated `json:"objects"`
 	HasMoreItems bool                 `json:"hasMoreItems"`
