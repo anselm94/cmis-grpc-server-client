@@ -162,10 +162,17 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 		}
 		switch cmisAction {
 		case "createFolder":
-			cmisObject, _ := createFolder(repositoryID, objectID, cmisPropertyMap)
+			cmisObject, _ := createObject(repositoryID, objectID, cmisPropertyMap)
 			writeJSON(w, cmisObject)
 		case "createDocument":
-			cmisObject, _ := createDocument(repositoryID, objectID, cmisPropertyMap)
+			cmisObject, _ := createObject(repositoryID, objectID, cmisPropertyMap)
+			writeJSON(w, cmisObject)
+		case "deleteTree":
+			// Won't delete the tree. Just deletes the folder object
+			cmisObject, _ := deleteObject(repositoryID, objectID)
+			writeJSON(w, cmisObject)
+		case "delete":
+			cmisObject, _ := deleteObject(repositoryID, objectID)
 			writeJSON(w, cmisObject)
 		}
 	} else {
@@ -282,7 +289,7 @@ func getParentObjects(repositoryID string, objectID string, isSuccinctProperties
 	return cmisserver.ConvertCmisParentProtoToCmis(cmisObjectProto.Parents, isSuccinctProperties, includeAllowableActions, includeACL), nil
 }
 
-func createFolder(repositoryID string, objectID string, propertyMap map[string]string) (*cmismodel.CmisObject, error) {
+func createObject(repositoryID string, objectID string, propertyMap map[string]string) (*cmismodel.CmisObject, error) {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cmisObjectID, _ := strconv.Atoi(objectID)
@@ -299,17 +306,11 @@ func createFolder(repositoryID string, objectID string, propertyMap map[string]s
 	return cmisserver.ConvertCmisObjectProtoToCmis(cmisObjectProto, true, false, false), nil
 }
 
-func createDocument(repositoryID string, objectID string, propertyMap map[string]string) (*cmismodel.CmisObject, error) {
+func deleteObject(repositoryID string, objectID string) (*cmismodel.CmisObject, error) {
 	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	cmisObjectID, _ := strconv.Atoi(objectID)
-	repoID, _ := strconv.Atoi(repositoryID)
-	cmisObjectProto, err := cmisClient.CreateObject(ctxt, &cmisproto.CreateObjectReq{
-		Name:         propertyMap["cmis:name"],
-		Type:         propertyMap["cmis:objectTypeId"],
-		ParentId:     &cmisproto.CmisObjectId{Id: int32(cmisObjectID)},
-		RepositoryId: int32(repoID),
-	})
+	cmisObjectProto, err := cmisClient.DeleteObject(ctxt, &cmisproto.CmisObjectId{Id: int32(cmisObjectID)})
 	if err != nil {
 		return nil, err
 	}
