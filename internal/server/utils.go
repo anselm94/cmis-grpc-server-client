@@ -105,3 +105,14 @@ func ConvertCmisPropertyDaoToProto(cmisProperty *model.CmisProperty) *cmisproto.
 	}
 	return propertyProto
 }
+
+func GetProperty(cmisObjectWithPropertiesAndPropertyDefinitions *model.CmisObject, cmisPropertyID string) string {
+	if len(cmisObjectWithPropertiesAndPropertyDefinitions.Properties) > 0 {
+		for _, cmisProperty := range cmisObjectWithPropertiesAndPropertyDefinitions.Properties {
+			if cmisProperty.PropertyDefinition.Name == cmisPropertyID {
+				return ""
+			}
+		}
+	}
+	return ""
+}

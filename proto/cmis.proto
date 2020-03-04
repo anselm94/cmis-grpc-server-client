@@ -53,6 +53,6 @@ service CmisService {
   rpc getRepository (google.protobuf.Empty) returns (Repository);
   rpc getObject(CmisObjectId) returns (CmisObject);
   rpc subscribeObject(stream CmisObjectId) returns (stream CmisObject);
-  rpc createObject(CreateObjectReq) returns (google.protobuf.Empty);
-  rpc deleteObject(CmisObjectId) returns (google.protobuf.Empty);
+  rpc createObject(CreateObjectReq) returns (CmisObject);
+  rpc deleteObject(CmisObjectId) returns (CmisObject);
 }

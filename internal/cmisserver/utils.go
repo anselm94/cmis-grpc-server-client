@@ -149,15 +149,15 @@ func ConvertCmisObjectProtoToCmis(cmisobject *cmisproto.CmisObject, isSuccinctPr
 	if isSuccinctProperties {
 		cmisObject.SuccinctProperties = make(map[string]interface{})
 		for _, cmisproperty := range cmisobject.Properties {
-			cmisValue := &cmisproperty.Value
 			cmisPropertyDataType := cmisproperty.PropertyDefinition.Datatype
-			if cmisproperty.Value == "" {
-				cmisValue = nil
-			}
 			if cmisPropertyDataType == "datetime" || cmisPropertyDataType == "integer" {
-				cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name], _ = strconv.Atoi(*cmisValue)
+				cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name], _ = strconv.Atoi(cmisproperty.Value)
 			} else {
-				cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = cmisValue
+				if cmisproperty.Value == "" {
+					cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = nil
+				} else {
+					cmisObject.SuccinctProperties[cmisproperty.PropertyDefinition.Name] = cmisproperty.Value
+				}
 			}
 		}
 	} else {

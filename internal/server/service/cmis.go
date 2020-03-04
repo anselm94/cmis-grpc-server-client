@@ -5,9 +5,11 @@ import (
 	"docserverclient/internal/server"
 	"docserverclient/internal/server/model"
 	cmisproto "docserverclient/proto"
+	"fmt"
 	"io"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -59,7 +61,7 @@ func (c *Cmis) GetRepository(ctx context.Context, req *empty.Empty) (*cmisproto.
 
 // GetObject callback for Unary call (to support CMIS Server's getObject) to fetch the Object
 func (c *Cmis) GetObject(ctx context.Context, objectID *cmisproto.CmisObjectId) (*cmisproto.CmisObject, error) {
-	log.Printf("Request to get the Object with ID -> %s", objectID.Id)
+	log.Printf("Request to get the Object with ID -> %d", objectID.Id)
 	cmisObject, err := c.getObject(objectID)
 	if err != nil {
 		return nil, err
@@ -143,7 +145,7 @@ func (c *Cmis) getObject(cmisObjectID *cmisproto.CmisObjectId) (*cmisproto.CmisO
 }
 
 // CreateObject callback for Unary call to create a document/folder/any type based on the typeID and name
-func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObjectReq) (*empty.Empty, error) {
+func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObjectReq) (*cmisproto.CmisObject, error) {
 	log.Printf("Request to create an object with name \"%s\" and type \"%s\"", createReq.Name, createReq.Type)
 	typeDef := model.TypeDefinition{
 		PropertyDefinitions: []*model.PropertyDefinition{},
@@ -152,11 +154,11 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 
 	// Load the Type Definitions and the property definitions
 	if err := c.DB.Preload("PropertyDefinitions").Where("name = ?", createReq.Type).First(&typeDef).Error; err != nil {
-		return &empty.Empty{}, err
+		return nil, err
 	}
 	// Load the parent object, so that the new object can be attached as a 'filing' relationship
-	if err := c.DB.Find(&parentCmisObject, uint(createReq.ParentId.Id)).Error; err != nil {
-		return &empty.Empty{}, err
+	if err := c.DB.Preload("Properties").Preload("Properties.PropertyDefinition").Find(&parentCmisObject, uint(createReq.ParentId.Id)).Error; err != nil {
+		return nil, err
 	}
 
 	// Assemble the CMIS object to be created
@@ -170,7 +172,7 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 	}
 	// Create the object in DB
 	if err := c.DB.Create(&cmisObject).Error; err != nil {
-		return &empty.Empty{}, err
+		return nil, err
 	}
 
 	cmisObjectProperties := make([]*model.CmisProperty, len(typeDef.PropertyDefinitions))
@@ -193,21 +195,32 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 			cmisObjectProperty.Value = "default"
 		case "cmis:lastModifiedBy":
 			cmisObjectProperty.Value = "default"
+		case "cmis:creationDate":
+			cmisObjectProperty.Value = strconv.Itoa(int(time.Now().Unix()))
+		case "cmis:lastModificationDate":
+			cmisObjectProperty.Value = strconv.Itoa(int(time.Now().Unix()))
+		case "cmis:path":
+			parentCmisPath := server.GetProperty(&parentCmisObject, "cmis:path")
+			cmisObjectProperty.Value = fmt.Sprintf("%s/%s", parentCmisPath, createReq.Name)
 		}
 		cmisObjectProperties[index] = &cmisObjectProperty
 	}
 	// Create the properties in DB as associations
 	if err := c.DB.Model(&cmisObject).Association("Properties").Append(&cmisObjectProperties).Error; err != nil {
-		return &empty.Empty{}, err
+		return nil, err
 	}
-
-	return &empty.Empty{}, nil
+	// Load the current object with properties and property definitions
+	if err := c.DB.Preload("Properties").Preload("Properties.PropertyDefinition").Find(&cmisObject).Error; err != nil {
+		return nil, err
+	}
+	cmisObjectProto := server.ConvertCmisObjectDaoToProto(&cmisObject, false)
+	return cmisObjectProto, nil
 }
 
 // DeleteObject callback for Unary RPC request to delete an Object
 // Deletes the `CmisObject`, along with its associated `CmisProperties` and delete the `filing` (parent-child) relationship
 // TODO - Delete tree to be implemented. Currently deleting a folder, orphans its kids (you know, how much you owe then!? in cleaning the DB)
-func (c *Cmis) DeleteObject(ctx context.Context, objectID *cmisproto.CmisObjectId) (*empty.Empty, error) {
+func (c *Cmis) DeleteObject(ctx context.Context, objectID *cmisproto.CmisObjectId) (*cmisproto.CmisObject, error) {
 	log.Printf("Request to delete the object with ID \"%d\"", objectID.Id)
 	cmisObject := &model.CmisObject{
 		ID:         uint(objectID.Id),
@@ -216,17 +229,18 @@ func (c *Cmis) DeleteObject(ctx context.Context, objectID *cmisproto.CmisObjectI
 	}
 	// Load the object to be deleted
 	if err := c.DB.Preload("Properties").Preload("Parents").Find(&cmisObject).Error; err != nil {
-		return &empty.Empty{}, err
+		return nil, err
 	}
 	// Cut ties with the parent by deleting the relationship
 	if err := c.DB.Model(&cmisObject).Association("Parents").Clear().Error; err != nil {
-		return &empty.Empty{}, err
+		return nil, err
 	}
 	// Slash the lone object and its properties
 	if err := c.DB.Model(&cmisObject).Delete(cmisObject).Error; err != nil {
-		return &empty.Empty{}, err
+		return nil, err
 	}
-	return &empty.Empty{}, nil
+	cmisObjectProto := server.ConvertCmisObjectDaoToProto(cmisObject, false)
+	return cmisObjectProto, nil
 }
 
 // DBCallback holds the callback for each of the bidirectional connection,

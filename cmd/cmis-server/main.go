@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -119,10 +120,9 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 func browserObject(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	repositoryID, _ := vars["repositoryID"]
-	ok := true
-	if ok {
+	objectID, _ := url.QueryUnescape(r.URL.Query().Get("objectId"))
+	if r.Method == http.MethodGet {
 		cmisSelector := r.URL.Query().Get("cmisselector")
-		objectID, _ := url.QueryUnescape(r.URL.Query().Get("objectId"))
 		isSuccinctProperties := r.URL.Query().Get("succinct") != "false"
 		includeACL := r.URL.Query().Get("includeACL") == "true"
 		includeAllowableActions := r.URL.Query().Get("includeAllowableActions") == "true"
@@ -146,8 +146,30 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 		default:
 			writeNotFound(w, "Object not found")
 		}
+	} else if r.Method == http.MethodPost {
+		r.ParseMultipartForm(1024) // Load upto 1KB of data
+		cmisAction := r.PostFormValue("cmisaction")
+		cmisPropertyMap := make(map[string]string)
+		for key, propertyKey := range r.PostForm {
+			if strings.Contains(key, "propertyId") {
+				propertyIndexStr := strings.FieldsFunc(key, func(c rune) bool {
+					return c == '[' || c == ']'
+				})[1]
+				propertyIndex, _ := strconv.Atoi(propertyIndexStr)
+				propertyValue := r.PostFormValue(fmt.Sprintf("propertyValue[%d]", propertyIndex))
+				cmisPropertyMap[propertyKey[0]] = propertyValue
+			}
+		}
+		switch cmisAction {
+		case "createFolder":
+			cmisObject, _ := createFolder(repositoryID, objectID, cmisPropertyMap)
+			writeJSON(w, cmisObject)
+		case "createDocument":
+			cmisObject, _ := createDocument(repositoryID, objectID, cmisPropertyMap)
+			writeJSON(w, cmisObject)
+		}
 	} else {
-		writeError(w, "Object ID not found")
+		writeError(w, "Method not supported")
 	}
 }
 
@@ -258,4 +280,38 @@ func getParentObjects(repositoryID string, objectID string, isSuccinctProperties
 		return nil, err
 	}
 	return cmisserver.ConvertCmisParentProtoToCmis(cmisObjectProto.Parents, isSuccinctProperties, includeAllowableActions, includeACL), nil
+}
+
+func createFolder(repositoryID string, objectID string, propertyMap map[string]string) (*cmismodel.CmisObject, error) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmisObjectID, _ := strconv.Atoi(objectID)
+	repoID, _ := strconv.Atoi(repositoryID)
+	cmisObjectProto, err := cmisClient.CreateObject(ctxt, &cmisproto.CreateObjectReq{
+		Name:         propertyMap["cmis:name"],
+		Type:         propertyMap["cmis:objectTypeId"],
+		ParentId:     &cmisproto.CmisObjectId{Id: int32(cmisObjectID)},
+		RepositoryId: int32(repoID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return cmisserver.ConvertCmisObjectProtoToCmis(cmisObjectProto, true, false, false), nil
+}
+
+func createDocument(repositoryID string, objectID string, propertyMap map[string]string) (*cmismodel.CmisObject, error) {
+	ctxt, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmisObjectID, _ := strconv.Atoi(objectID)
+	repoID, _ := strconv.Atoi(repositoryID)
+	cmisObjectProto, err := cmisClient.CreateObject(ctxt, &cmisproto.CreateObjectReq{
+		Name:         propertyMap["cmis:name"],
+		Type:         propertyMap["cmis:objectTypeId"],
+		ParentId:     &cmisproto.CmisObjectId{Id: int32(cmisObjectID)},
+		RepositoryId: int32(repoID),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return cmisserver.ConvertCmisObjectProtoToCmis(cmisObjectProto, true, false, false), nil
 }
