@@ -81,6 +81,7 @@ func writeNotFound(w http.ResponseWriter, err string) {
 func browserRepositoryInfos(w http.ResponseWriter, r *http.Request) {
 	repositoryIDs := []string{"1"}
 	repositoryInfos := map[string]cmismodel.Repository{}
+	log.Println("Request: Get Repository Infos")
 	for _, repositoryID := range repositoryIDs {
 		repositoryInfo, err := getRepository(repositoryID)
 		if err != nil {
@@ -98,6 +99,7 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 	if ok {
 		cmisSelector := r.URL.Query().Get("cmisselector")
 		includePropertyDefinitions := r.URL.Query().Get("includePropertyDefinitions") != "false"
+		log.Printf("Request: Repository => Repository ID: %s \t\t\t CMIS Selector: %s", repositoryID, cmisSelector)
 		switch cmisSelector {
 		case "typeChildren":
 			typeChildren, _ := getTypeChildren(repositoryID, includePropertyDefinitions)
@@ -117,6 +119,7 @@ func browserRepository(w http.ResponseWriter, r *http.Request) {
 			writeError(w, "No selector")
 		}
 	} else {
+		log.Printf("Request: Unknown Path -> %s", r.URL.Path)
 		writeError(w, "Repository ID not found")
 	}
 }
@@ -130,6 +133,7 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 		isSuccinctProperties := r.URL.Query().Get("succinct") != "false"
 		includeACL := r.URL.Query().Get("includeACL") == "true"
 		includeAllowableActions := r.URL.Query().Get("includeAllowableActions") == "true"
+		log.Printf("Request: Object     => Repository ID: %s \t Object ID:%s \t CMIS Selector: %s", repositoryID, objectID, cmisSelector)
 		switch cmisSelector {
 		case "object":
 			cmisObject, _ := getObject(repositoryID, objectID, isSuccinctProperties, includeAllowableActions, includeACL)
@@ -148,11 +152,13 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, cmisObjectParent)
 			return
 		default:
+			log.Printf("Request: Unknown CMIS Selector -> %s", r.URL.Path)
 			writeNotFound(w, "Object not found")
 		}
 	} else if r.Method == http.MethodPost {
 		r.ParseMultipartForm(1024) // Load upto 1KB of data
 		cmisAction := r.PostFormValue("cmisaction")
+		log.Printf("Request: Object     => Repository ID: %s \t Object ID:%s \t CMIS Action  : %s", repositoryID, objectID, cmisAction)
 		cmisPropertyMap := make(map[string]string)
 		for key, propertyKey := range r.PostForm {
 			if strings.Contains(key, "propertyId") {
@@ -178,13 +184,18 @@ func browserObject(w http.ResponseWriter, r *http.Request) {
 		case "delete":
 			cmisObject, _ := deleteObject(repositoryID, objectID)
 			writeJSON(w, cmisObject)
+		default:
+			log.Printf("Request: Unknown CMIS Action -> %s", r.URL.Path)
+			writeNotFound(w, "Unknown action")
 		}
 	} else {
+		log.Printf("Request: Method - %s not supported -> %s", r.Method, r.URL.Path)
 		writeError(w, "Method not supported")
 	}
 }
 
 func browserNotFound(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Request: Unknown path -> %s", r.URL.Path)
 	writeNotFound(w, "Not found")
 }
 
