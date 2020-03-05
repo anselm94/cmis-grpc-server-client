@@ -1,6 +1,6 @@
 # A Documents Server & Workbench Client
 
-A small implementation of a **CMIS server**, gRPC based **Metadata Server** and a gRPC based **TUI Client** allowing creating/deleting folders/documents in the server. All 3 components are written in Golang. The metadata is persisted in Postgre DB. The server-client interface is either through `gRPC` which is a *Remote-Procedure-Call* protocol or via `CMIS` through *CMIS Workbench*.
+A small implementation of a **CMIS server**, gRPC based **Metadata Server** and a gRPC based **TUI Client** allowing creating/deleting folders/documents in the server. All 3 components are written in Golang. The metadata is persisted in Postgres DB. The server-client interface is either through `gRPC` which is a *Remote-Procedure-Call* protocol or via `CMIS` through *CMIS Workbench*.
 
 ## Overview
 
@@ -18,14 +18,19 @@ The *Metadata Server* persists the metadata in Postgres DB and has `gRPC` based 
 
 Here the *Metadata Server* can support any Data-modelling, however, the *CMIS Server* handles the mapping of data from *Metadata Server* to *CMIS* models, and finally to the *Browser (JSON) binding*
 
-![Demo of live updating feature](./docs/demo.gif)
-*Demo of live updating feature where 2 clients creating folders/documents independantly, and the documents list updates almost instantaneously!*
+![Demo of live updating feature between TUI client](./docs/demo-tui-client.gif)
+*Demo of live updating feature where 2 TUI clients creating folders/documents independantly, and the documents list updates almost instantaneously!*
 
-The *domain-modelling* at the *Metadata Server* follows that of *CMIS* but is minimal to show key features of Document Management systems like creating type definitions and property definitions, creating/deleting/fetching folders/documents with attached properties. However, the folders and documents can be attached to any custom type definitions and can have custom properties based on the property definitions, the type definitions have and is very flexible as CMIS.
+The ***domain-modelling*** at the *Metadata Server* follows that of *CMIS* but is minimal to show key features of Document Management systems like creating type definitions and property definitions, creating/deleting/fetching folders/documents with attached properties. However, the folders and documents can be attached to any custom type definitions and can have custom properties based on the property definitions, the type definitions have and is very flexible as CMIS.
 
-The *Metadata Server* is written using Golang and utilizes the [concurrency](https://tour.golang.org/concurrency/1) for high-performance and supports server to client push via GORM's DB callbacks (which is not a DB trigger) after every create/delete of objects in DB.
+The ***Metadata Server*** is written using Golang and utilizes the [concurrency](https://tour.golang.org/concurrency/1) for high-performance and supports server to client push via GORM's DB callbacks (which is not a DB trigger) after every create/delete of objects in DB.
 
-The *Generic TUI Client* is written in Golang too and has a peculiar Terminal UI (called *tui*). The client too has concurrency support while listening to server for updates, without blocking any threads. The UI runs in the main routine (similar to threads of Java world, but much simpler and robust, and sleeps while waiting for updates), while the server-listener runs in another go-routine.
+The ***Generic TUI Client*** is written in Golang too and has a peculiar Terminal UI (called *tui*). The client too has concurrency support while listening to server for updates, without blocking any threads. The UI runs in the main routine (similar to threads of Java world, but much simpler and robust, and sleeps while waiting for updates), while the server-listener runs in another go-routine.
+
+![Demo of CMIS Workbench & live updating in TUI Client](./docs/demo-cmis-client.gif)
+*Demo of CMIS JSON binding capability using 'CMIS Workbench' displaying Types, folders & documents with support for creating/deleting documents & folders, and the documents list in TUI client updates almost instantaneously!*
+
+The ***CMIS Server*** is a simple HTTP based RESTful server, parses the requests from any CMIS compliant client (like *CMIS Workbench*) and serves the JSON API in accordance with *'browser-binding'* or '*JSON binding'* specification of CMIS. All the metadata operations are handled in *Metadata Server* which exposes a *gRPC binding*, model of which is mapped to CMIS domain at the *CMIS Server*.
 
 ![Architecture](./docs/architecture.png)
 
