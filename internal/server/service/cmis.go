@@ -164,19 +164,15 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 	// Assemble the CMIS object to be created
 	cmisObject := model.CmisObject{
 		TypeDefinitionID: typeDef.ID,
-		Properties:       []*model.CmisProperty{}, // Create properties after object creation as ObjectID is not known in advance
+		Properties:       make([]*model.CmisProperty, 0),
 		Parents: []*model.CmisObject{
 			&parentCmisObject,
 		},
 		RepositoryID: uint(createReq.RepositoryId),
 	}
-	// Create the object in DB
-	if err := c.DB.Create(&cmisObject).Error; err != nil {
-		return nil, err
-	}
 
-	cmisObjectProperties := make([]*model.CmisProperty, len(typeDef.PropertyDefinitions))
-	for index, propertyDefinition := range typeDef.PropertyDefinitions {
+	var objectIDPropDefID uint // temp variable to reference the ID of Property Definition of ObjectId in Table
+	for _, propertyDefinition := range typeDef.PropertyDefinitions {
 		cmisObjectProperty := model.CmisProperty{
 			PropertyDefinitionID: propertyDefinition.ID,
 		}
@@ -186,7 +182,8 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 		case "cmis:parentId":
 			cmisObjectProperty.Value = strconv.Itoa(int(createReq.ParentId.Id))
 		case "cmis:objectId":
-			cmisObjectProperty.Value = strconv.Itoa(int(cmisObject.ID))
+			objectIDPropDefID = propertyDefinition.ID
+			continue // Don't add this property, and will be added later
 		case "cmis:baseTypeId":
 			cmisObjectProperty.Value = createReq.Type
 		case "cmis:objectTypeId":
@@ -203,12 +200,23 @@ func (c *Cmis) CreateObject(ctx context.Context, createReq *cmisproto.CreateObje
 			parentCmisPath := server.GetProperty(&parentCmisObject, "cmis:path")
 			cmisObjectProperty.Value = fmt.Sprintf("%s/%s", parentCmisPath, createReq.Name)
 		}
-		cmisObjectProperties[index] = &cmisObjectProperty
+		cmisObject.Properties = append(cmisObject.Properties, &cmisObjectProperty)
 	}
-	// Create the properties in DB as associations
-	if err := c.DB.Model(&cmisObject).Association("Properties").Append(&cmisObjectProperties).Error; err != nil {
+
+	// Create the object in DB
+	if err := c.DB.Create(&cmisObject).Error; err != nil {
 		return nil, err
 	}
+
+	// Add the CMIS ObjectId property, as the object Id is not known earlier
+	// TODO: Don't use automatic ID creation in table in future design
+	if err := c.DB.Model(&cmisObject).Association("Properties").Append(model.CmisProperty{
+		PropertyDefinitionID: objectIDPropDefID,
+		Value:                strconv.Itoa(int(cmisObject.ID)),
+	}).Error; err != nil {
+		return nil, err
+	}
+
 	// Load the current object with properties and property definitions
 	if err := c.DB.Preload("Properties").Preload("Properties.PropertyDefinition").Find(&cmisObject).Error; err != nil {
 		return nil, err
